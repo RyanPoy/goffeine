@@ -22,7 +22,7 @@ func TestHashCode(t *testing.T) {
 }
 
 func TestNumberOfLeadingZerosForInt(t *testing.T) {
-	f, err := os.Open("test_files/for_int/numberOfLeadingZerosForInt_10w.txt") // 用Caffeine的Java版本生成10w数据
+	f, err := os.Open("test_files/numberOfLeadingZerosForInt_10w.txt") // 用Caffeine的Java版本生成10w数据
 	if err != nil {
 		defer f.Close()
 	}
@@ -44,7 +44,7 @@ func TestNumberOfLeadingZerosForInt(t *testing.T) {
 }
 
 func TestCeilingPowerOfTwoForInt(t *testing.T) {
-	f, err := os.Open("test_files/for_int/ceilingPowerOfTwoForInt_10w.txt") // 用Caffeine的Java版本生成10w数据
+	f, err := os.Open("test_files/ceilingPowerOfTwoForInt_10w.txt") // 用Caffeine的Java版本生成10w数据
 	if err != nil {
 		defer f.Close()
 	}
@@ -67,7 +67,7 @@ func TestCeilingPowerOfTwoForInt(t *testing.T) {
 
 
 func TestNumberOfLeadingZerosForLong(t *testing.T) {
-	f, err := os.Open("test_files/for_long/numberOfLeadingZerosForLong_10w.txt") // 用Caffeine的Java版本生成10w数据
+	f, err := os.Open("test_files/numberOfLeadingZerosForLong_10w.txt") // 用Caffeine的Java版本生成10w数据
 	if err != nil {
 		defer f.Close()
 	}
@@ -89,7 +89,7 @@ func TestNumberOfLeadingZerosForLong(t *testing.T) {
 }
 
 func TestCeilingPowerOfTwoForLong(t *testing.T) {
-	f, err := os.Open("test_files/for_long/ceilingPowerOfTwoForLong_10w.txt") // 用Caffeine的Java版本生成10w数据
+	f, err := os.Open("test_files/ceilingPowerOfTwoForLong_10w.txt") // 用Caffeine的Java版本生成10w数据
 	if err != nil {
 		defer f.Close()
 	}
