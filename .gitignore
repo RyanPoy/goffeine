@@ -1,0 +1,6 @@
+.idea/
+.DS_Store
+go.sum
+*.iml
+numberOfLeadingZeros_1ww.txt
+ceilingPowerOfTwo_1ww.txt
