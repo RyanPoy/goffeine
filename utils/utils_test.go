@@ -21,7 +21,7 @@ func TestHashCode(t *testing.T) {
 	assert.Equal(expected, HashCode("中国"))
 }
 
-func TestNumberOfLeadingZeros(t *testing.T) {
+func TestNumberOfLeadingZerosForInt(t *testing.T) {
 	f, err := os.Open("numberOfLeadingZerosForInt_10w.txt") // 用Caffeine的Java版本生成10w数据
 	if err != nil {
 		defer f.Close()
@@ -43,7 +43,7 @@ func TestNumberOfLeadingZeros(t *testing.T) {
 	}
 }
 
-func TestCeilingPowerOfTwo(t *testing.T) {
+func TestCeilingPowerOfTwoForInt(t *testing.T) {
 	f, err := os.Open("ceilingPowerOfTwoForInt_10w.txt") // 用Caffeine的Java版本生成10w数据
 	if err != nil {
 		defer f.Close()
@@ -66,11 +66,46 @@ func TestCeilingPowerOfTwo(t *testing.T) {
 }
 
 
-//func (t *testing.T) {
-//	assert := assert.New(t)
-//	assert.Equal(32, CeilingPowerOfTwoForInt(30))
-//	assert.Equal(128, CeilingPowerOfTwoForInt(90))
-//	//for i := 1; i < math.MaxInt32; i++ {
-//	//	fmt.Println(i, CeilingPowerOfTwoForInt(i))
-//	//}
-//}
+func TestNumberOfLeadingZerosForLong(t *testing.T) {
+	f, err := os.Open("numberOfLeadingZerosForLong_10w.txt") // 用Caffeine的Java版本生成10w数据
+	if err != nil {
+		defer f.Close()
+	}
+	assert := assert.New(t)
+	reader := bufio.NewReader(f)
+	for ; ; {
+		line, ferr := reader.ReadString('\n')
+		if ferr != nil && ferr == io.EOF {
+			break
+		}
+		line = strings.TrimSpace(line)
+		vs := strings.Split(line, ",")
+
+		num, _ := strconv.Atoi(vs[0])
+		expected, _ := strconv.Atoi(vs[1])
+		relt := NumberOfLeadingZerosForLong(int64(num))
+		assert.Equal(expected, relt, fmt.Sprintf("NumberOfLeadingZerosForLong(%d)=%d, 现在=%d", num, expected, relt))
+	}
+}
+
+func TestCeilingPowerOfTwoForLong(t *testing.T) {
+	f, err := os.Open("ceilingPowerOfTwoForLong_10w.txt") // 用Caffeine的Java版本生成10w数据
+	if err != nil {
+		defer f.Close()
+	}
+	assert := assert.New(t)
+	reader := bufio.NewReader(f)
+	for ; ; {
+		line, ferr := reader.ReadString('\n')
+		if ferr != nil && ferr == io.EOF {
+			break
+		}
+		line = strings.TrimSpace(line)
+		vs := strings.Split(line, ",")
+
+		num, _ := strconv.Atoi(vs[0])
+		expected, _ := strconv.Atoi(vs[1])
+		relt := CeilingPowerOfTwoForLong(int64(num))
+		assert.Equal(int64(expected), relt, fmt.Sprintf("CeilingPowerOfTwoForLong(%d)=%d, 现在=%d", num, expected, relt))
+	}
+}

@@ -10,6 +10,25 @@ func HashCode(s string) uint32 {
 	return algorithm.Sum32()
 }
 
+// Returns the smallest power of two greater than or equal to {@code x}.
+func CeilingPowerOfTwoForLong(x int64) int64 {
+    // From Hacker's Delight, Chapter 3, Harry S. Warren Jr.
+	var n int64 = 1
+	tmp := -NumberOfLeadingZerosForLong(x - 1)
+	if tmp < 0 {
+		tmp = 64 + tmp
+	}
+    return n << tmp
+}
+
+func NumberOfLeadingZerosForLong(i int64) int {
+	x := int(uint64(i) >> 32)
+	if x == 0 {
+		return 32 + NumberOfLeadingZerosForInt(int(i))
+	}
+	return NumberOfLeadingZerosForInt(x)
+}
+
 func CeilingPowerOfTwoForInt(x int) int {
 	tmp := -NumberOfLeadingZerosForInt(x - 1)
 	if tmp < 0 {
