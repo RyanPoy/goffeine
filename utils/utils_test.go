@@ -22,7 +22,7 @@ func TestHashCode(t *testing.T) {
 }
 
 func TestNumberOfLeadingZeros(t *testing.T) {
-	f, err := os.Open("numberOfLeadingZeros_10w.txt") // 用Caffeine的Java版本生成10w数据
+	f, err := os.Open("numberOfLeadingZerosForInt_10w.txt") // 用Caffeine的Java版本生成10w数据
 	if err != nil {
 		defer f.Close()
 	}
@@ -38,13 +38,13 @@ func TestNumberOfLeadingZeros(t *testing.T) {
 
 		num, _ := strconv.Atoi(vs[0])
 		expected, _ := strconv.Atoi(vs[1])
-		relt := NumberOfLeadingZeros(num)
-		assert.Equal(expected, relt, fmt.Sprintf("NumberOfLeadingZeros(%d)=%d, 现在=%d", num, expected, relt))
+		relt := NumberOfLeadingZerosForInt(num)
+		assert.Equal(expected, relt, fmt.Sprintf("NumberOfLeadingZerosForInt(%d)=%d, 现在=%d", num, expected, relt))
 	}
 }
 
 func TestCeilingPowerOfTwo(t *testing.T) {
-	f, err := os.Open("ceilingPowerOfTwo_10w.txt") // 用Caffeine的Java版本生成10w数据
+	f, err := os.Open("ceilingPowerOfTwoForInt_10w.txt") // 用Caffeine的Java版本生成10w数据
 	if err != nil {
 		defer f.Close()
 	}
@@ -60,17 +60,17 @@ func TestCeilingPowerOfTwo(t *testing.T) {
 
 		num, _ := strconv.Atoi(vs[0])
 		expected, _ := strconv.Atoi(vs[1])
-		relt := CeilingPowerOfTwo(num)
-		assert.Equal(expected, relt, fmt.Sprintf("CeilingPowerOfTwo(%d)=%d, 现在=%d", num, expected, relt))
+		relt := CeilingPowerOfTwoForInt(num)
+		assert.Equal(expected, relt, fmt.Sprintf("CeilingPowerOfTwoForInt(%d)=%d, 现在=%d", num, expected, relt))
 	}
 }
 
 
 //func (t *testing.T) {
 //	assert := assert.New(t)
-//	assert.Equal(32, CeilingPowerOfTwo(30))
-//	assert.Equal(128, CeilingPowerOfTwo(90))
+//	assert.Equal(32, CeilingPowerOfTwoForInt(30))
+//	assert.Equal(128, CeilingPowerOfTwoForInt(90))
 //	//for i := 1; i < math.MaxInt32; i++ {
-//	//	fmt.Println(i, CeilingPowerOfTwo(i))
+//	//	fmt.Println(i, CeilingPowerOfTwoForInt(i))
 //	//}
 //}

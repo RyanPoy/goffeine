@@ -10,15 +10,15 @@ func HashCode(s string) uint32 {
 	return algorithm.Sum32()
 }
 
-func CeilingPowerOfTwo(x int) int {
-	tmp := -NumberOfLeadingZeros(x - 1)
+func CeilingPowerOfTwoForInt(x int) int {
+	tmp := -NumberOfLeadingZerosForInt(x - 1)
 	if tmp < 0 {
 		tmp = 32 + tmp
 	}
 	return 1 << tmp
 }
 
-func NumberOfLeadingZeros(i int) int {
+func NumberOfLeadingZerosForInt(i int) int {
 	// HD, Count leading 0's
 	if i < 0 {
 		return 0
