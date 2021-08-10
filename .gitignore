@@ -2,5 +2,7 @@
 .DS_Store
 go.sum
 *.iml
-numberOfLeadingZeros_1ww.txt
-ceilingPowerOfTwo_1ww.txt
+numberOfLeadingZerosForInt_1ww.txt
+ceilingPowerOfTwoForInt_1ww.txt
+numberOfLeadingZerosForLong_1ww.txt
+ceilingPowerOfTwoForLong_1ww.txt
