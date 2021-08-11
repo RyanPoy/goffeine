@@ -11,17 +11,6 @@ import (
 	"testing"
 )
 
-func TestNumberOfLeadingZerosForLong(t *testing.T) {
-	assert := assert.New(t)
-	numbers, expecteds := readLines("10w_numberOfLeadingZeros.txt")
-	length := len(numbers)
-	for i := 0; i < length; i++ {
-		num, expected := numbers[i], expecteds[i]
-		relt := NumberOfLeadingZeros(int64(num))
-		assert.Equal(expected, relt, fmt.Sprintf("long.NumberOfLeadingZeros(%d)=%d, 现在=%d", num, expected, relt))
-	}
-}
-
 func TestCeilingPowerOfTwoForLong(t *testing.T) {
 	assert := assert.New(t)
 	numbers, expecteds := readLines("10w_ceilingPowerOfTwo.txt")
