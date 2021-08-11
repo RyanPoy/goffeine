@@ -5,10 +5,10 @@ import (
 	"math/bits"
 )
 
-func HashCode(s string) int32 {
+func HashCode(s string) uint32 {
 	algorithm := fnv.New32()
 	algorithm.Write([]byte(s))
-	return int32(algorithm.Sum32())
+	return algorithm.Sum32()
 }
 
 func CeilingPowerOfTwo32(x int) int {
