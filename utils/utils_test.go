@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"goffeine/utils/integer"
+	"goffeine/utils/long"
 	"io"
 	"os"
 	"strconv"
@@ -13,7 +15,7 @@ import (
 
 func TestHashCode(t *testing.T) {
 	assert := assert.New(t)
-	var expected uint32 = 1134309195
+	expected := 1134309195
 
 	assert.Equal(expected, HashCode("abc"), "HashCode不准确")
 
@@ -27,8 +29,8 @@ func TestNumberOfLeadingZerosForInt(t *testing.T) {
 	length := len(numbers)
 	for i := 0; i < length; i++ {
 		num, expected := numbers[i], expecteds[i]
-		relt := NumberOfLeadingZerosForInt(num)
-		assert.Equal(expected, relt, fmt.Sprintf("NumberOfLeadingZerosForInt(%d)=%d, 现在=%d", num, expected, relt))
+		relt := integer.NumberOfLeadingZeros(num)
+		assert.Equal(expected, relt, fmt.Sprintf("integer.NumberOfLeadingZeros(%d)=%d, 现在=%d", num, expected, relt))
 	}
 }
 
@@ -38,8 +40,8 @@ func TestCeilingPowerOfTwoForInt(t *testing.T) {
 	length := len(numbers)
 	for i := 0; i < length; i++ {
 		num, expected := numbers[i], expecteds[i]
-		relt := CeilingPowerOfTwoForInt(num)
-		assert.Equal(expected, relt, fmt.Sprintf("CeilingPowerOfTwoForInt(%d)=%d, 现在=%d", num, expected, relt))
+		relt := integer.CeilingPowerOfTwo(num)
+		assert.Equal(expected, relt, fmt.Sprintf("integer.CeilingPowerOfTwo(%d)=%d, 现在=%d", num, expected, relt))
 	}
 }
 
@@ -49,8 +51,8 @@ func TestNumberOfLeadingZerosForLong(t *testing.T) {
 	length := len(numbers)
 	for i := 0; i < length; i++ {
 		num, expected := numbers[i], expecteds[i]
-		relt := NumberOfLeadingZerosForLong(int64(num))
-		assert.Equal(expected, relt, fmt.Sprintf("NumberOfLeadingZerosForLong(%d)=%d, 现在=%d", num, expected, relt))
+		relt := long.NumberOfLeadingZeros(int64(num))
+		assert.Equal(expected, relt, fmt.Sprintf("long.NumberOfLeadingZeros(%d)=%d, 现在=%d", num, expected, relt))
 	}
 }
 
@@ -60,8 +62,8 @@ func TestCeilingPowerOfTwoForLong(t *testing.T) {
 	length := len(numbers)
 	for i := 0; i < length; i++ {
 		num, expected := numbers[i], expecteds[i]
-		relt := CeilingPowerOfTwoForLong(int64(num))
-		assert.Equal(int64(expected), relt, fmt.Sprintf("CeilingPowerOfTwoForLong(%d)=%d, 现在=%d", num, expected, relt))
+		relt := long.CeilingPowerOfTwo(int64(num))
+		assert.Equal(int64(expected), relt, fmt.Sprintf("long.CeilingPowerOfTwo(%d)=%d, 现在=%d", num, expected, relt))
 	}
 }
 
