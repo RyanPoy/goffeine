@@ -22,14 +22,14 @@ func TestNewFSketch(t *testing.T) {
 func TestFrequnceIsZeroWhenNotExistKey(t *testing.T) {
 	assert := assert.New(t)
 	key := []byte("123中国")
-	sketch := NewFSketch(10)
+	sketch := NewFSketch(20)
 	assert.Equal(0, sketch.Frequency(key))
 }
 
 func TestFrequnceAfterIncrement(t *testing.T) {
 	assert := assert.New(t)
 	key := []byte("123中国")
-	sketch := NewFSketch(10)
+	sketch := NewFSketch(20)
 	sketch.Increment(key)
 	assert.Equal(1, sketch.Frequency(key))
 }
@@ -99,7 +99,7 @@ func TestHeavyHitters(t *testing.T) {
 
 func TestIncrementAt(t *testing.T) {
 	assert := assert.New(t)
-	sketch := NewFSketch(10)
+	sketch := NewFSketch(20)
 
 	sketch.incrementAt(0, 0)
 	sketch.incrementAt(0, 4)
