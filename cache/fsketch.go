@@ -16,8 +16,8 @@ const (
 
 // 完整名字：FrequencySketch
 // 用一个uint64表示所有的次数，下面详细解释一下：
-// 1、每个元素的Fre最多不超过15，那么可以用 4个bit来表示。从0000到1111。一个int64有64个bit，所以一个int64可以表示(64/4)=16个Fre。
-// 2、但为了防止hash不够均匀，一个int64只用来表示4个Fre，所以，实际上：64bit/4 = 16bit，即：用16bit表示一个Fre
+// 1、每个元素的Fre最多不超过15，那么可以用 4个bit来表示。从0000到1111。
+// 2、一个int64有64个bit，所以一个int64可以表示(64/4)=16个Fre。
 type FSketch struct {
 	table     []uint64 // 数据表格
 	length    int      // table的长度
@@ -32,16 +32,17 @@ func NewFSketch(n int) FSketch {
 	if n <= 0 {
 		n = 1
 	}
-	// 用16个bit来表示一个Fre。所以，理论上分配的容量最好是16的整数倍。
-	// 又因为一个Int64是4个Fre，但是16的整数倍不一定是64的整数倍
-	// 所以，分配容量应该是Int64的整数倍最合适。
-	capacity := (n * 16 / 64) + 1
-	capacity = utils.CeilingPowerOfTwo32(capacity)
+	// 用4个bit来表示一个Fre。所以，理论上分配的容量最好是4的整数倍。
+	// 但是4的整数倍不一定是64的整数倍，所以，分配容量应该是Int64的整数倍最合适。
+	length := (n * 4 / 64) + 1
 
+	// 分配容量优化都是按照2的n次方个Byte来分配
+	// 所以如果按照2的n次方个int64来分配
+	length = utils.CeilingPowerOfTwo32(length)
 	f := FSketch{
-		table:     make([]uint64, capacity),
-		length:    capacity,
-		threshold: 10 * capacity,
+		table:     make([]uint64, length),
+		length:    length,
+		threshold: 10 * length,
 		counter:   0,
 	}
 	return f
@@ -77,13 +78,21 @@ func (s *FSketch) Increment(x []byte) {
 }
 
 // 给table下标为idx的，第pos个fre加1
-// 具体什么算法也没有完全高清楚，是移植自Caffeine的源码
 //
 // @param i  table的下标
 // @param j  第几个fre
 func (s *FSketch) incrementAt(i, j int) int {
-	// j永远等于0, 4, 8, 12
-	// 所以下面的offset永远等于 0, 16, 32, 48
+	// j永远是下面的值：
+	// 0, 1, 2, 3
+	// 4, 5, 6, 7
+	// 8, 9, 10, 11
+	// 12, 13, 14, 15
+
+	// 所以下面的offset永远是：
+	// 0, 4, 8, 12
+	// 16, 20, 24, 28,
+	// 32, 36, 40, 44,
+	// 48, 52, 56, 60
 	var offset uint64 = uint64(j << 2)
 
 	mask := LONG_15 << offset

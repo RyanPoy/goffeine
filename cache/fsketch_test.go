@@ -14,9 +14,9 @@ func TestNewFSketchWithNegativeOrZero(t *testing.T) {
 
 func TestNewFSketch(t *testing.T) {
 	assert := assert.New(t)
-	assert.Equal(8, NewFSketch(16).length)
-	assert.Equal(32, NewFSketch(100).length)
-	assert.Equal(4194304, NewFSketch(10000000).length)
+	assert.Equal(2, NewFSketch(16).length)
+	assert.Equal(8, NewFSketch(100).length)
+	assert.Equal(1048576, NewFSketch(10000000).length)
 }
 
 func TestFrequnceIsZeroWhenNotExistKey(t *testing.T) {
@@ -37,7 +37,7 @@ func TestFrequnceAfterIncrement(t *testing.T) {
 func TestMaxFrequnce(t *testing.T) {
 	assert := assert.New(t)
 	key := []byte("123中国")
-	sketch := NewFSketch(10)
+	sketch := NewFSketch(20)
 	for i := 0; i < 20; i++ {
 		sketch.Increment(key)
 	}
@@ -51,7 +51,7 @@ func TestReset(t *testing.T) {
 	n := sketch.threshold * 3 / 2 // <=> sketch.threshold * 1.5
 	reset := false
 	for i := 0; i < n; i++ {
-		// 执行完这个循环，counter=sketch.threshold 到了
+		// 执行完这个循环，counter>=sketch.threshold 到了
 		sketch.Increment(key)
 		if sketch.counter != i {
 			reset = true
