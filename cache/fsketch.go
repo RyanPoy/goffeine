@@ -48,12 +48,13 @@ func NewFSketch(n int) FSketch {
 }
 
 func (s *FSketch) Frequency(x []byte) int {
-	frequency := 0
+	frequency := math.MaxInt32
 	hashCode := uint64(s.spread(x))
 	start := int((hashCode & 3) << 2)
 	for i := 0; i < 4; i++ {
-		idx := s.indexOf(hashCode, SEEDS[i])
-		count := (int)((s.table[idx]>> ((start + i) << 2)) & LONG_15)
+		idx := s.indexOf(hashCode, i)
+		offset := (start + i) << 2
+		count := (int)((s.table[idx] >> offset) & LONG_15)
 		frequency = int(math.Min(float64(frequency), float64(count)))
 	}
 	return frequency
@@ -62,12 +63,12 @@ func (s *FSketch) Frequency(x []byte) int {
 func (s *FSketch) Increment(x []byte) {
 	hashCode := uint64(s.spread(x))
 	start := int((hashCode & 3) << 2)
-	added := true
+	added := 0
 	for i := 0; i < 4; i++ {
-		idx := s.indexOf(hashCode, SEEDS[i])
-		added = added || s.incrementAt(idx, start+i)
+		idx := s.indexOf(hashCode, i)
+		added |= s.incrementAt(idx, start+i)
 	}
-	if added {
+	if added == 1 {
 		s.counter += 1
 		if s.counter == s.threshold {
 			s.reset()
@@ -80,7 +81,7 @@ func (s *FSketch) Increment(x []byte) {
 //
 // @param i  table的下标
 // @param j  第几个fre
-func (s *FSketch) incrementAt(i, j int) bool {
+func (s *FSketch) incrementAt(i, j int) int {
 	// j永远等于0, 4, 8, 12
 	// 所以下面的offset永远等于 0, 16, 32, 48
 	var offset uint64 = uint64(j << 2)
@@ -89,9 +90,9 @@ func (s *FSketch) incrementAt(i, j int) bool {
 
 	if (s.table[i] & mask) != mask {
 		s.table[i] += (LONG_1 << offset)
-		return true
+		return 1
 	}
-	return false
+	return 0
 }
 
 // 得到指定深度的计数器在table的索引
@@ -100,17 +101,18 @@ func (s *FSketch) incrementAt(i, j int) bool {
 // @param item the element's hash
 // @param i the counter depth
 // @return the table index
-func (s *FSketch) indexOf(item uint64, seed uint64) int {
+func (s *FSketch) indexOf(item uint64, i int) int {
+	seed := SEEDS[i]
 	hash := (item + seed) * seed
 	hash += hash >> 32
-	return int(hash & uint64(s.length - 1))
+	return int(hash & uint64(s.length-1))
 }
 
 // 散列出一个更加好的hash数值
 func (s *FSketch) spread(key []byte) uint32 {
 	h := 0
 	for _, v := range key {
-		h = 31 * h + int(v & 0xff)
+		h = 31*h + int(v&0xff)
 	}
 	x := uint32(h)
 	x = ((x >> 16) ^ x) * 0x45d9f3b // x = ((x >>> 16) ^ x) * 0x45d9f3b;
@@ -127,4 +129,3 @@ func (s *FSketch) reset() {
 	}
 	s.counter = int((uint(s.length) >> 1) - (count >> 2))
 }
-
