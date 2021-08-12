@@ -103,7 +103,7 @@ func (s *FSketch) incrementAt(i, j int) bool {
 func (s *FSketch) indexOf(item uint64, seed uint64) int {
 	hash := (item + seed) * seed
 	hash += hash >> 32
-	return int(hash & uint64(s.length))
+	return int(hash & uint64(s.length - 1))
 }
 
 // 散列出一个更加好的hash数值
