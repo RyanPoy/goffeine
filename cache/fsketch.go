@@ -110,10 +110,13 @@ func (s *FSketch) indexOf(item uint64, i int) int {
 
 // 散列出一个更加好的hash数值
 func (s *FSketch) spread(key []byte) uint32 {
+	// h算法移植于 Java 的 StringLatin1.hashCode()
 	h := 0
 	for _, v := range key {
 		h = 31*h + int(v&0xff)
 	}
+	// 怕hashCode不够散列，再来一次
+	// 算法移植于 Caffeine
 	x := uint32(h)
 	x = ((x >> 16) ^ x) * 0x45d9f3b // x = ((x >>> 16) ^ x) * 0x45d9f3b;
 	x = ((x >> 16) ^ x) * 0x45d9f3b // x = ((x >>> 16) ^ x) * 0x45d9f3b;

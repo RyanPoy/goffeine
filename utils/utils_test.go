@@ -11,17 +11,6 @@ import (
 	"testing"
 )
 
-func TestHashCode(t *testing.T) {
-	assert := assert.New(t)
-	var expected uint32 = 1134309195
-
-	assert.Equal(expected, HashCode("abc"), "HashCode不准确")
-
-	expected = 2423445863
-	assert.Equal(expected, HashCode("中国"))
-}
-
-
 func TestCeilingPowerOfTwo32(t *testing.T) {
 	assert := assert.New(t)
 	numbers, expecteds := readLines("test_files/10w_ceilingPowerOfTwo32.txt")
