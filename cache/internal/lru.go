@@ -60,3 +60,13 @@ func (lru *LRU) Get(key string) (interface{}, error) {
 	}
 	return nil, errors.New(fmt.Sprintf("『%s』does not exist", key))
 }
+
+// 删除一个key
+// 如果key存在，删除，并且返回，如果key不存在，返回nil
+func (lru *LRU) Remove(key string) interface{} {
+	if pElement, ok := lru.kv[key]; ok { // 存在，则找到queue的位置，挪动到最前面
+		pNode := (pElement.Value).(*Node)
+		return pNode.Value()
+	}
+	return nil
+}

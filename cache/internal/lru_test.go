@@ -64,3 +64,15 @@ func TestUpdateWhenAndAExistKeyButDifferentValue(t *testing.T) {
 	assert.Equal(456, value)
 }
 
+func TestRemoveAndGetNilIfDoesNotExist(t *testing.T) {
+	assert := assert.New(t)
+	lru := NewLRU(10)
+	assert.Equal(nil, lru.Remove("id_123"))
+}
+
+func TestRemove(t *testing.T) {
+	assert := assert.New(t)
+	lru := NewLRU(10)
+	lru.Add("id_123", 123)
+	assert.Equal(123, lru.Remove("id_123"))
+}
