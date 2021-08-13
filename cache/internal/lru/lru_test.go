@@ -1,4 +1,4 @@
-package cache
+package lru
 
 import (
 	"fmt"
@@ -6,16 +6,20 @@ import (
 	"testing"
 )
 
+func newLRU(c int) LRU {
+	return New(c)
+}
+
 func TestInitial(t *testing.T) {
 	assert := assert.New(t)
-	lru := NewLRU(10)
+	lru := newLRU(10)
 	assert.Equal(0, lru.Len())
 	assert.Equal(10, lru.Capacity())
 }
 
 func TestAddOnce(t *testing.T) {
 	assert := assert.New(t)
-	lru := NewLRU(10)
+	lru := newLRU(10)
 	lru.Add("id_123", 123)
 	assert.Equal(1, lru.Len())
 	assert.Equal(10, lru.Capacity())
@@ -23,7 +27,7 @@ func TestAddOnce(t *testing.T) {
 
 func TestAddTwice(t *testing.T) {
 	assert := assert.New(t)
-	lru := NewLRU(10)
+	lru := newLRU(10)
 	lru.Add("id_123", 123)
 	lru.Add("id_123", 123)
 	assert.Equal(1, lru.Len())
@@ -32,7 +36,7 @@ func TestAddTwice(t *testing.T) {
 
 func TestAddMany(t *testing.T) {
 	assert := assert.New(t)
-	lru := NewLRU(10)
+	lru := newLRU(10)
 	lru.Add("id_123", 123)
 	lru.Add("id_123", 123)
 	lru.Add("id_456", 456)
@@ -43,14 +47,14 @@ func TestAddMany(t *testing.T) {
 
 func TestGetWhenNotExist(t *testing.T) {
 	assert := assert.New(t)
-	lru := NewLRU(10)
+	lru := newLRU(10)
 	_, err := lru.Get("id_123")
 	assert.Equal("『id_123』does not exist", err.Error())
 }
 
 func TestGet(t *testing.T) {
 	assert := assert.New(t)
-	lru := NewLRU(10)
+	lru := newLRU(10)
 	lru.Add("id_123", 123)
 	value, _ := lru.Get("id_123")
 	assert.Equal(123, value)
@@ -58,7 +62,7 @@ func TestGet(t *testing.T) {
 
 func TestUpdateWhenAndAExistKeyButDifferentValue(t *testing.T) {
 	assert := assert.New(t)
-	lru := NewLRU(10)
+	lru := newLRU(10)
 	lru.Add("id_123", 123)
 	lru.Add("id_123", 456)
 	value, _ := lru.Get("id_123")
@@ -67,13 +71,13 @@ func TestUpdateWhenAndAExistKeyButDifferentValue(t *testing.T) {
 
 func TestRemoveAndGetNilIfDoesNotExist(t *testing.T) {
 	assert := assert.New(t)
-	lru := NewLRU(10)
+	lru := newLRU(10)
 	assert.Equal(nil, lru.Remove("id_123"))
 }
 
 func TestRemove(t *testing.T) {
 	assert := assert.New(t)
-	lru := NewLRU(10)
+	lru := newLRU(10)
 	lru.Add("id_123", 123)
 	assert.Equal(123, lru.Remove("id_123"))
 
@@ -84,7 +88,7 @@ func TestRemove(t *testing.T) {
 
 func TestFull(t *testing.T) {
 	assert := assert.New(t)
-	lru := NewLRU(3)
+	lru := New(3)
 	lru.Add("id_123", 123)
 	lru.Add("id_456", 456)
 	lru.Add("id_789", 789)
@@ -93,7 +97,7 @@ func TestFull(t *testing.T) {
 
 func TestAddWillBeEliminatedAutomaticWhenCapacityIsFull(t *testing.T) {
 	assert := assert.New(t)
-	lru := NewLRU(3)
+	lru := New(3)
 
 	lru.Add("id_123", 123)
 	lru.Add("id_456", 456)

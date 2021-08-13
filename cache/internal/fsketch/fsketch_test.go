@@ -1,4 +1,4 @@
-package cache
+package fsketch
 
 import (
 	"encoding/binary"
@@ -6,30 +6,34 @@ import (
 	"testing"
 )
 
-func TestNewFSketchWhichMinLengthEqual16(t *testing.T) {
+func newFSketch(n int) FSketch{
+	return New(n)
+}
+
+func TestNewWhichMinLengthEqual16(t *testing.T) {
 	assert := assert.New(t)
-	assert.Equal(4, NewFSketch(-1).length)
-	assert.Equal(4, NewFSketch(0).length)
-	assert.Equal(4, NewFSketch(16).length)
-	assert.Equal(8, NewFSketch(100).length)
-	assert.Equal(64, NewFSketch(1000).length)
-	assert.Equal(1024, NewFSketch(10000).length)
-	assert.Equal(8192, NewFSketch(100000).length)
-	assert.Equal(65536, NewFSketch(1000000).length)
-	assert.Equal(1048576, NewFSketch(10000000).length)
+	assert.Equal(4, newFSketch(-1).length)
+	assert.Equal(4, newFSketch(0).length)
+	assert.Equal(4, newFSketch(16).length)
+	assert.Equal(8, newFSketch(100).length)
+	assert.Equal(64, newFSketch(1000).length)
+	assert.Equal(1024, newFSketch(10000).length)
+	assert.Equal(8192, newFSketch(100000).length)
+	assert.Equal(65536, newFSketch(1000000).length)
+	assert.Equal(1048576, newFSketch(10000000).length)
 }
 
 func TestFrequnceIsZeroWhenNotExistKey(t *testing.T) {
 	assert := assert.New(t)
 	key := []byte("123中国")
-	sketch := NewFSketch(10)
+	sketch := newFSketch(10)
 	assert.Equal(0, sketch.Frequency(key))
 }
 
 func TestFrequnceAfterIncrement(t *testing.T) {
 	assert := assert.New(t)
 	key := []byte("123中国")
-	sketch := NewFSketch(10)
+	sketch := newFSketch(10)
 	sketch.Increment(key)
 	assert.Equal(1, sketch.Frequency(key))
 }
@@ -37,7 +41,7 @@ func TestFrequnceAfterIncrement(t *testing.T) {
 func TestMaxFrequnce(t *testing.T) {
 	assert := assert.New(t)
 	key := []byte("123中国")
-	sketch := NewFSketch(10)
+	sketch := newFSketch(10)
 	for i := 0; i < 20; i++ {
 		sketch.Increment(key)
 	}
@@ -47,7 +51,7 @@ func TestMaxFrequnce(t *testing.T) {
 func TestReset(t *testing.T) {
 	assert := assert.New(t)
 	key := []byte("123中国")
-	sketch := NewFSketch(1)
+	sketch := newFSketch(1)
 	n := sketch.threshold * 3 / 2 // <=> sketch.threshold * 1.5
 	reset := false
 	for i := 0; i < n; i++ {
@@ -64,7 +68,7 @@ func TestReset(t *testing.T) {
 
 func TestHeavyHitters(t *testing.T) {
 	assert := assert.New(t)
-	sketch := NewFSketch(512)
+	sketch := newFSketch(512)
 
 	key := make([]byte, 8)
 	for i := 100; i < 100_000; i++ {
@@ -99,7 +103,7 @@ func TestHeavyHitters(t *testing.T) {
 
 func TestIncrementAt(t *testing.T) {
 	assert := assert.New(t)
-	sketch := NewFSketch(10)
+	sketch := newFSketch(10)
 
 	sketch.incrementAt(0, 0)
 	sketch.incrementAt(0, 4)

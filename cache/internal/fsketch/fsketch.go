@@ -1,7 +1,7 @@
-package cache
+package fsketch
 
 import (
-	"goffeine/utils"
+	"goffeine/cache/internal/utils"
 	"math"
 	"math/bits"
 )
@@ -28,7 +28,7 @@ type FSketch struct {
 // New一个FrequencySketch
 //
 // @param n 表示你要存放多少个次数
-func NewFSketch(n int) FSketch {
+func New(n int) FSketch {
 	if n <= 0 {
 		n = 1
 	}

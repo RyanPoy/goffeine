@@ -1,9 +1,10 @@
-package cache
+package lru
 
 import (
 	"container/list"
 	"errors"
 	"fmt"
+	"goffeine/cache/internal/node"
 )
 
 // 顾名思义：LRU。里面封装了一个map和一个list
@@ -14,7 +15,7 @@ type LRU struct {
 	hashmap map[string]*list.Element
 }
 
-func NewLRU(cap int) LRU {
+func New(cap int) LRU {
 	return LRU{
 		cap:     cap,
 		queue:   list.New(),
@@ -50,10 +51,10 @@ func (lru *LRU) ReCapacity(cap int) *LRU {
 // @param: key 要添加的内容的key
 // @param: value 要添加的内容
 func (lru *LRU) Add(key string, value interface{}) *LRU {
-	pNewNode := NewNode(key, value)
+	pNewNode := node.New(key, value)
 	if pElement, ok := lru.hashmap[key]; ok {
 		// 存在，则找到queue的位置，挪动到最前面
-		pOldNode := (pElement.Value).(*Node)
+		pOldNode := (pElement.Value).(*node.Node)
 		if !pOldNode.Equals(pNewNode) {
 			// 不相等，表示要进行更新内容的操作
 			pOldNode.UpdateWith(pNewNode)
@@ -75,7 +76,7 @@ func (lru *LRU) Add(key string, value interface{}) *LRU {
 // 如果找到返回内容，如果没有找到则有error
 func (lru *LRU) Get(key string) (interface{}, error) {
 	if pElement, ok := lru.hashmap[key]; ok { // 存在，则找到queue的位置，挪动到最前面
-		pNode := (pElement.Value).(*Node)
+		pNode := (pElement.Value).(*node.Node)
 		return pNode.Value(), nil
 	}
 	return nil, errors.New(fmt.Sprintf("『%s』does not exist", key))
@@ -88,7 +89,7 @@ func (lru *LRU) Remove(key string) interface{} {
 		lru.queue.Remove(pElement)
 		delete(lru.hashmap, key)
 
-		pNode := (pElement.Value).(*Node)
+		pNode := (pElement.Value).(*node.Node)
 		return pNode.Value()
 	}
 	return nil

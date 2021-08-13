@@ -1,4 +1,4 @@
-package cache
+package node
 
 import "errors"
 
@@ -8,7 +8,7 @@ type Node struct {
 	value interface{}
 }
 
-func NewNode(key string, value interface{}) *Node {
+func New(key string, value interface{}) *Node {
 	return &Node{
 		key: key,
 		keyHash: []byte(key),
