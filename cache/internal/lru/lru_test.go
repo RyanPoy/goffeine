@@ -20,7 +20,8 @@ func TestInitial(t *testing.T) {
 func TestAddOnce(t *testing.T) {
 	assert := assert.New(t)
 	lru := newLRU(10)
-	lru.Add("id_123", 123)
+	v := lru.Add("id_123", 123)
+	assert.Equal(nil, v)
 	assert.Equal(1, lru.Len())
 	assert.Equal(10, lru.Capacity())
 }
@@ -28,8 +29,12 @@ func TestAddOnce(t *testing.T) {
 func TestAddTwice(t *testing.T) {
 	assert := assert.New(t)
 	lru := newLRU(10)
-	lru.Add("id_123", 123)
-	lru.Add("id_123", 123)
+	v := lru.Add("id_123", 123)
+	assert.Equal(nil, v)
+
+	v = lru.Add("id_123", 123)
+	assert.Equal(nil, v)
+
 	assert.Equal(1, lru.Len())
 	assert.Equal(10, lru.Capacity())
 }
@@ -43,6 +48,14 @@ func TestAddMany(t *testing.T) {
 	lru.Add("id_789", 789)
 	assert.Equal(3, lru.Len())
 	assert.Equal(10, lru.Capacity())
+}
+
+func TestAddAndGetEliminated(t *testing.T) {
+	assert := assert.New(t)
+	lru := newLRU(1)
+	lru.Add("id_123", 123)
+	v := lru.Add("id_456", 456)
+	assert.Equal(123, v)
 }
 
 func TestGetWhenNotExist(t *testing.T) {
@@ -118,5 +131,4 @@ func TestAddWillBeEliminatedAutomaticWhenCapacityIsFull(t *testing.T) {
 	_, v = lru.Get("id_123")
 	assert.Equal(nil, v)
 }
-
 
