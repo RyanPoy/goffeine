@@ -51,13 +51,16 @@ func (lru *LRU) ReCapacity(cap int) *LRU {
 // @param: value 要添加的内容
 func (lru *LRU) Add(key string, value interface{}) *LRU {
 	pNewNode := NewNode(key, value)
-	if pElement, ok := lru.hashmap[key]; ok { // 存在，则找到queue的位置，挪动到最前面
+	if pElement, ok := lru.hashmap[key]; ok {
+		// 存在，则找到queue的位置，挪动到最前面
 		pOldNode := (pElement.Value).(*Node)
 		if !pOldNode.Equals(pNewNode) {
+			// 不相等，表示要进行更新内容的操作
 			pOldNode.UpdateWith(pNewNode)
 		}
 		lru.queue.MoveToFront(pElement)
-	} else if !lru.IsFull() { // 不存在，且空间没有满
+	} else if !lru.IsFull() {
+		// 不存在，且空间没有满
 		pElement := lru.queue.PushFront(pNewNode)
 		lru.hashmap[key] = pElement
 	} else { // 不存在，空间也满了
@@ -91,7 +94,7 @@ func (lru *LRU) Remove(key string) interface{} {
 	return nil
 }
 
-// 自动淘汰，本质上就是淘汰最近最少使用的
+// 自动淘汰最近最少使用的，从尾部淘汰
 func (lru *LRU) Eliminate() interface{} {
 	if element := lru.queue.Back(); element != nil {
 		lru.queue.Remove(element)
