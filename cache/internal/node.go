@@ -1,4 +1,4 @@
-package cache
+package internal
 
 import "errors"
 
@@ -9,7 +9,7 @@ type Node struct {
 }
 
 func NewNode(key string, value interface{}) *Node {
-	return &Node {
+	return &Node{
 		key: key,
 		keyHash: []byte(key),
 		value: value,
