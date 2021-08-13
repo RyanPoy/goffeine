@@ -35,10 +35,14 @@ func (lru *LRU) Capacity() int {
 // 永远添加到head
 //
 func (lru *LRU) Add(key string, value interface{}) *LRU {
+	newNode := NewNode(key, value)
 	if pElement, ok := lru.cache[key]; ok { // 存在，则找到queue的位置，挪动到最前面
+		if !newNode.Equals((pElement.Value).(Node)) {
+			pElement.Value = newNode
+		}
 		lru.queue.MoveToFront(pElement)
 	} else {
-		pElement := lru.queue.PushFront(NewNode(key, value))
+		pElement := lru.queue.PushFront(newNode)
 		lru.cache[key] = pElement
 	}
 	return lru
