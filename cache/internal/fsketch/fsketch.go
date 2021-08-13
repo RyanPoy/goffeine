@@ -28,7 +28,7 @@ type FSketch struct {
 // New一个FrequencySketch
 //
 // @param n 表示你要存放多少个次数
-func New(n int) FSketch {
+func New(n int) *FSketch {
 	if n <= 0 {
 		n = 1
 	}
@@ -49,7 +49,7 @@ func New(n int) FSketch {
 		threshold: 10*length,
 		counter:   0,
 	}
-	return f
+	return &f
 }
 
 func (s *FSketch) Frequency(x []byte) int {

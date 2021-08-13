@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func newLRU(c int) LRU {
+func newLRU(c int) *LRU {
 	return New(c)
 }
 

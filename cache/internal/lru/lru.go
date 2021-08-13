@@ -15,8 +15,8 @@ type LRU struct {
 	hashmap map[string]*list.Element
 }
 
-func New(cap int) LRU {
-	return LRU{
+func New(cap int) *LRU {
+	return &LRU{
 		cap:     cap,
 		queue:   list.New(),
 		hashmap: make(map[string]*list.Element, cap),

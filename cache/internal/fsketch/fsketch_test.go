@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func newFSketch(n int) FSketch{
+func newFSketch(n int) *FSketch{
 	return New(n)
 }
 
