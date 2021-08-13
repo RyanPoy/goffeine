@@ -4,7 +4,6 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
-	"goffeine/cache/internal/node"
 )
 
 // 顾名思义：LRU。里面封装了一个map和一个list
@@ -45,39 +44,41 @@ func (lru *LRU) ReCapacity(cap int) *LRU {
 	return lru
 }
 
+func (lru *LRU) Contains(key string) bool {
+	_, ok := lru.hashmap[key]
+	return ok
+}
+
 // 往LRU里面添加内容
 // 永远添加到head
 //
 // @param: key 要添加的内容的key
 // @param: value 要添加的内容
-func (lru *LRU) Add(key string, value interface{}) *LRU {
-	pNewNode := node.New(key, value)
-	if pElement, ok := lru.hashmap[key]; ok {
-		// 存在，则找到queue的位置，挪动到最前面
-		pOldNode := (pElement.Value).(*node.Node)
-		if !pOldNode.Equals(pNewNode) {
+func (lru *LRU) Add(key string, value interface{}) {
+	if lru.Contains(key) {
+		// 存在，则找到queue的位置，并且挪动到最前面
+		element, _ := lru.hashmap[key]
+		if element.Value != value {
 			// 不相等，表示要进行更新内容的操作
-			pOldNode.UpdateWith(pNewNode)
+			element.Value = value
 		}
-		lru.queue.MoveToFront(pElement)
+		lru.queue.MoveToFront(element)
 	} else if !lru.IsFull() {
 		// 不存在，且空间没有满
-		pElement := lru.queue.PushFront(pNewNode)
-		lru.hashmap[key] = pElement
+		element := lru.queue.PushFront(value)
+		lru.hashmap[key] = element
 	} else { // 不存在，空间也满了
 		lru.Eliminate()
-		pElement := lru.queue.PushFront(pNewNode)
-		lru.hashmap[key] = pElement
+		element := lru.queue.PushFront(value)
+		lru.hashmap[key] = element
 	}
-	return lru
 }
 
 // 通过key查找内容
 // 如果找到返回内容，如果没有找到则有error
 func (lru *LRU) Get(key string) (interface{}, error) {
 	if pElement, ok := lru.hashmap[key]; ok { // 存在，则找到queue的位置，挪动到最前面
-		pNode := (pElement.Value).(*node.Node)
-		return pNode.Value(), nil
+		return pElement.Value, nil
 	}
 	return nil, errors.New(fmt.Sprintf("『%s』does not exist", key))
 }
@@ -88,9 +89,7 @@ func (lru *LRU) Remove(key string) interface{} {
 	if pElement, ok := lru.hashmap[key]; ok { // 存在，则找到queue的位置，挪动到最前面
 		lru.queue.Remove(pElement)
 		delete(lru.hashmap, key)
-
-		pNode := (pElement.Value).(*node.Node)
-		return pNode.Value()
+		return pElement.Value
 	}
 	return nil
 }
@@ -98,7 +97,7 @@ func (lru *LRU) Remove(key string) interface{} {
 // 自动淘汰最近最少使用的，从尾部淘汰
 func (lru *LRU) Eliminate() interface{} {
 	if element := lru.queue.Back(); element != nil {
-		lru.queue.Remove(element)
+		return lru.queue.Remove(element)
 	}
 	return nil
 }
