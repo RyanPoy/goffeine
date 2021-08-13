@@ -50,7 +50,7 @@ func (lru *LRU) Contains(key string) bool {
 }
 
 // 往LRU里面添加内容
-// 永远添加到head
+// 永远添加到tail
 //
 // @param: key 要添加的内容的key
 // @param: value 要添加的内容
@@ -58,20 +58,20 @@ func (lru *LRU) Contains(key string) bool {
 func (lru *LRU) Add(key string, value interface{}) interface{} {
 	var elementEliminated interface{} = nil
 	if lru.Contains(key) {
-		// 存在，则找到queue的位置，并且挪动到最前面
+		// 存在，则找到queue的位置，并且挪动到tail
 		pElement, _ := lru.hashmap[key]
 		if pElement.Value != value {
 			// 不相等，表示要进行更新内容的操作
 			pElement.Value = value
 		}
-		lru.queue.MoveToFront(pElement)
+		lru.queue.MoveToBack(pElement)
 	} else if !lru.IsFull() {
 		// 不存在，且空间没有满
-		pElement := lru.queue.PushFront(value)
+		pElement := lru.queue.PushBack(value)
 		lru.hashmap[key] = pElement
 	} else { // 不存在，空间也满了
 		elementEliminated = lru.Eliminate()
-		pElement := lru.queue.PushFront(value)
+		pElement := lru.queue.PushBack(value)
 		lru.hashmap[key] = pElement
 	}
 	return elementEliminated
@@ -99,7 +99,7 @@ func (lru *LRU) Remove(key string) interface{} {
 
 // 自动淘汰最近最少使用的，从尾部淘汰
 func (lru *LRU) Eliminate() interface{} {
-	if pElement := lru.queue.Back(); pElement != nil {
+	if pElement := lru.queue.Front(); pElement != nil {
 		return lru.queue.Remove(pElement)
 	}
 	return nil
