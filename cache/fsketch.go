@@ -34,7 +34,11 @@ func NewFSketch(n int) FSketch {
 	}
 	// 用4个bit来表示一个Fre。所以，理论上分配的容量最好是4的整数倍。
 	// 但是4的整数倍不一定是64的整数倍，所以，分配容量应该是Int64的整数倍最合适。
-	length := (n * 4 / 64) + 1
+	length := n * 4 / 64
+
+	if length < 4 {
+		length = 4
+	}
 
 	// 分配容量优化都是按照2的n次方个Byte来分配
 	// 所以如果按照2的n次方个int64来分配
@@ -42,7 +46,7 @@ func NewFSketch(n int) FSketch {
 	f := FSketch{
 		table:     make([]uint64, length),
 		length:    length,
-		threshold: 10 * length,
+		threshold: 10*length,
 		counter:   0,
 	}
 	return f

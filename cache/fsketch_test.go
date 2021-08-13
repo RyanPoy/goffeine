@@ -6,30 +6,30 @@ import (
 	"testing"
 )
 
-func TestNewFSketchWithNegativeOrZero(t *testing.T) {
+func TestNewFSketchWhichMinLengthEqual16(t *testing.T) {
 	assert := assert.New(t)
-	assert.Equal(1, NewFSketch(-1).length)
-	assert.Equal(1, NewFSketch(0).length)
-}
-
-func TestNewFSketch(t *testing.T) {
-	assert := assert.New(t)
-	assert.Equal(2, NewFSketch(16).length)
+	assert.Equal(4, NewFSketch(-1).length)
+	assert.Equal(4, NewFSketch(0).length)
+	assert.Equal(4, NewFSketch(16).length)
 	assert.Equal(8, NewFSketch(100).length)
+	assert.Equal(64, NewFSketch(1000).length)
+	assert.Equal(1024, NewFSketch(10000).length)
+	assert.Equal(8192, NewFSketch(100000).length)
+	assert.Equal(65536, NewFSketch(1000000).length)
 	assert.Equal(1048576, NewFSketch(10000000).length)
 }
 
 func TestFrequnceIsZeroWhenNotExistKey(t *testing.T) {
 	assert := assert.New(t)
 	key := []byte("123中国")
-	sketch := NewFSketch(20)
+	sketch := NewFSketch(10)
 	assert.Equal(0, sketch.Frequency(key))
 }
 
 func TestFrequnceAfterIncrement(t *testing.T) {
 	assert := assert.New(t)
 	key := []byte("123中国")
-	sketch := NewFSketch(20)
+	sketch := NewFSketch(10)
 	sketch.Increment(key)
 	assert.Equal(1, sketch.Frequency(key))
 }
@@ -37,7 +37,7 @@ func TestFrequnceAfterIncrement(t *testing.T) {
 func TestMaxFrequnce(t *testing.T) {
 	assert := assert.New(t)
 	key := []byte("123中国")
-	sketch := NewFSketch(20)
+	sketch := NewFSketch(10)
 	for i := 0; i < 20; i++ {
 		sketch.Increment(key)
 	}
@@ -99,7 +99,7 @@ func TestHeavyHitters(t *testing.T) {
 
 func TestIncrementAt(t *testing.T) {
 	assert := assert.New(t)
-	sketch := NewFSketch(20)
+	sketch := NewFSketch(10)
 
 	sketch.incrementAt(0, 0)
 	sketch.incrementAt(0, 4)
