@@ -35,14 +35,15 @@ func (lru *LRU) Capacity() int {
 // 永远添加到head
 //
 func (lru *LRU) Add(key string, value interface{}) *LRU {
-	newNode := NewNode(key, value)
+	pNewNode := NewNode(key, value)
 	if pElement, ok := lru.cache[key]; ok { // 存在，则找到queue的位置，挪动到最前面
-		if !newNode.Equals((pElement.Value).(Node)) {
-			pElement.Value = newNode
+		pOldNode := (pElement.Value).(*Node)
+		if !pOldNode.Equals(pNewNode) {
+			pOldNode.UpdateWith(pNewNode)
 		}
 		lru.queue.MoveToFront(pElement)
 	} else {
-		pElement := lru.queue.PushFront(newNode)
+		pElement := lru.queue.PushFront(pNewNode)
 		lru.cache[key] = pElement
 	}
 	return lru
@@ -50,8 +51,8 @@ func (lru *LRU) Add(key string, value interface{}) *LRU {
 
 func (lru *LRU) Get(key string) (interface{}, error) {
 	if pElement, ok := lru.cache[key]; ok { // 存在，则找到queue的位置，挪动到最前面
-		node := (pElement.Value).(Node)
-		return node.Value(), nil
+		pNode := (pElement.Value).(*Node)
+		return pNode.Value(), nil
 	}
 	return nil, errors.New(fmt.Sprintf("『%s』does not exist", key))
 }
