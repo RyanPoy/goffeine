@@ -132,3 +132,28 @@ func TestAddWillBeEliminatedAutomaticWhenCapacityIsFull(t *testing.T) {
 	assert.Equal(nil, v)
 }
 
+func TestAddWillBeEliminatedAutomaticWhenCapacityIsFull2(t *testing.T) {
+	assert := assert.New(t)
+	lru := New(3)
+
+	lru.Add("id_123", 123)
+	lru.Add("id_456", 456)
+	lru.Add("id_789", 789)
+	lru.Add("id_123", 123)
+	lru.Add("id_abc", "abc")
+	assert.Equal(true, lru.IsFull())
+	assert.Equal(3, lru.Len())
+
+	v, _ := lru.Get("id_123")
+	assert.Equal(123, v)
+
+	v, _ = lru.Get("id_789")
+	assert.Equal(789, v)
+
+	v, _ = lru.Get("id_abc")
+	assert.Equal("abc", v)
+
+	_, v = lru.Get("id_456")
+	assert.Equal(nil, v)
+}
+
