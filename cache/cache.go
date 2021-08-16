@@ -2,25 +2,25 @@ package cache
 
 import (
 	"goffeine/cache/internal/fsketch"
-	"goffeine/cache/internal/lru"
+	"goffeine/cache/internal/queue"
 	"goffeine/cache/internal/node"
 )
 
 type Cache struct {
-	cap       int
-	sketch    *fsketch.FSketch
-	admission *lru.LRU
-	probation *lru.LRU
-	protected *lru.LRU
+	cap        int
+	sketch     *fsketch.FSketch
+	windowQ    *queue.AccessOrderQueue
+	probationQ *queue.AccessOrderQueue
+	protectedQ *queue.AccessOrderQueue
 }
 
 func New(cap int) Cache {
 	return Cache{
-		cap:       cap,
-		sketch:    fsketch.New(cap),
-		admission: lru.New(cap),
-		probation: lru.New(cap),
-		protected: lru.New(cap),
+		cap:        cap,
+		sketch:     fsketch.New(cap),
+		windowQ:    queue.New(cap),
+		probationQ: queue.New(cap),
+		protectedQ: queue.New(cap),
 	}
 }
 
@@ -29,23 +29,23 @@ func (c *Cache) Capacity() int {
 }
 
 func (c *Cache) Len() int {
-	return c.admission.Len() + c.probation.Len() + c.protected.Len()
+	return c.windowQ.Len() + c.probationQ.Len() + c.protectedQ.Len()
 }
 
 func (c *Cache) Contains(key string) bool {
-	return c.admission.Contains(key) || c.probation.Contains(key) || c.protected.Contains(key)
+	return c.windowQ.Contains(key) || c.probationQ.Contains(key) || c.protectedQ.Contains(key)
 }
 
 // 往cache里面添加内容
 func (c *Cache) Add(key string, value interface{}) {
-	pNode := node.New(key, value)
+	//pNode := node.New(key, value)
 
 	// 如果不在cache里面，先添加到admission
 	if !c.Contains(key) {
-		pNodeEliminated := c.admission.Add(key, pNode)
-		if pNodeEliminated != nil {
-			return
-		}
+		//pNodeEliminated := c.windowQ.Push(key, pNode)
+		//if pNodeEliminated != nil {
+		//	return
+		//}
 		// 到这里表示admission满了，且自动淘汰了一个
 
 	}
@@ -62,37 +62,38 @@ func (c *Cache) Add(key string, value interface{}) {
 //  }
 //
 //
-//  /**
-//   * Evicts entries from the window space into the main space while the window size exceeds a
-//   * maximum.
-//   *
-//   * @return the number of candidate entries evicted from the window space
-//   */
-//  @GuardedBy("evictionLock")
-//  int evictFromWindow() {
-//    int candidates = 0;
-//    Node<K, V> node = accessOrderWindowDeque().peek();
-//    while (windowWeightedSize() > windowMaximum()) {
-//      // The pending operations will adjust the size to reflect the correct weight
-//      if (node == null) {
-//        break;
-//      }
-//
-//      Node<K, V> next = node.getNextInAccessOrder();
-//      if (node.getPolicyWeight() != 0) {
-//        node.makeMainProbation();
-//        accessOrderWindowDeque().remove(node);
-//        accessOrderProbationDeque().add(node);
-//        candidates++;
-//
-//        setWindowWeightedSize(windowWeightedSize() - node.getPolicyWeight());
-//      }
-//      node = next;
-//    }
-//
-//    return candidates;
-//  }
-//
+
+ /**
+  * Evicts entries from the window space into the main space while the window size exceeds a
+  * maximum.
+  *
+  * @return the number of candidate entries evicted from the window space
+  */
+ @GuardedBy("evictionLock")
+ int evictFromWindow() {
+   int candidates = 0;
+   Node<K, V> node = accessOrderWindowDeque().peek();
+   while (windowWeightedSize() > windowMaximum()) {
+     // The pending operations will adjust the size to reflect the correct weight
+     if (node == null) {
+       break;
+     }
+
+     Node<K, V> next = node.getNextInAccessOrder();
+     if (node.getPolicyWeight() != 0) {
+       node.makeMainProbation();
+       accessOrderWindowDeque().remove(node);
+       accessOrderProbationDeque().add(node);
+       candidates++;
+
+       setWindowWeightedSize(windowWeightedSize() - node.getPolicyWeight());
+     }
+     node = next;
+   }
+
+   return candidates;
+ }
+
 //  /**
 //   * Evicts entries from the main space if the cache exceeds the maximum capacity. The main space
 //   * determines whether admitting an entry (coming from the window space) is preferable to retaining
@@ -100,7 +101,7 @@ func (c *Cache) Add(key string, value interface{}) {
 //   * least frequently used entry is removed.
 //   *
 //   * The window space candidates were previously placed in the MRU position and the eviction
-//   * policy's victim is at the LRU position. The two ends of the queue are evaluated while an
+//   * policy's victim is at the AccessOrderQueue position. The two ends of the queue are evaluated while an
 //   * eviction is required. The number of remaining candidates is provided and decremented on
 //   * eviction, so that when there are no more candidates the victim is evicted.
 //   *
@@ -117,7 +118,7 @@ func (c *Cache) Add(key string, value interface{}) {
 //        candidate = null;
 //      }
 //
-//      // Try evicting from the protected and window queues
+//      // Try evicting from the protectedQ and window queues
 //      if ((candidate == null) && (victim == null)) {
 //        if (victimQueue == PROBATION) {
 //          victim = accessOrderProtectedDeque().peekFirst();
