@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"sync"
 )
 
 // 顾名思义：LRU。里面封装了一个map和一个list
@@ -11,14 +12,14 @@ import (
 type LRU struct {
 	cap     int
 	queue   *list.List // doubly link queue
-	hashmap map[string]*list.Element
+	hashmap sync.Map   // map[string]*list.Element
 }
 
 func New(cap int) *LRU {
 	return &LRU{
 		cap:     cap,
 		queue:   list.New(),
-		hashmap: make(map[string]*list.Element, cap),
+		hashmap: sync.Map{},
 	}
 }
 
@@ -45,7 +46,7 @@ func (lru *LRU) ReCapacity(cap int) *LRU {
 }
 
 func (lru *LRU) Contains(key string) bool {
-	_, ok := lru.hashmap[key]
+	_, ok := lru.hashmap.Load(key)
 	return ok
 }
 
@@ -59,7 +60,8 @@ func (lru *LRU) Add(key string, value interface{}) interface{} {
 	var elementEliminated interface{} = nil
 	if lru.Contains(key) {
 		// 存在，则找到queue的位置，并且挪动到tail
-		pElement, _ := lru.hashmap[key]
+		hashMapValue, _ := lru.hashmap.Load(key)
+		pElement := hashMapValue.(*list.Element)
 		if pElement.Value != value {
 			// 不相等，表示要进行更新内容的操作
 			pElement.Value = value
@@ -68,11 +70,11 @@ func (lru *LRU) Add(key string, value interface{}) interface{} {
 	} else if !lru.IsFull() {
 		// 不存在，且空间没有满
 		pElement := lru.queue.PushBack(value)
-		lru.hashmap[key] = pElement
+		lru.hashmap.Store(key, pElement)
 	} else { // 不存在，空间也满了
 		elementEliminated = lru.Eliminate()
 		pElement := lru.queue.PushBack(value)
-		lru.hashmap[key] = pElement
+		lru.hashmap.Store(key, pElement)
 	}
 	return elementEliminated
 }
@@ -80,7 +82,8 @@ func (lru *LRU) Add(key string, value interface{}) interface{} {
 // 通过key查找内容
 // 如果找到返回内容，如果没有找到则有error
 func (lru *LRU) Get(key string) (interface{}, error) {
-	if pElement, ok := lru.hashmap[key]; ok { // 存在，则找到queue的位置，挪动到最前面
+	if hashMapValue, ok := lru.hashmap.Load(key); ok { // 存在，则找到queue的位置，挪动到最前面
+		pElement := hashMapValue.(*list.Element)
 		return pElement.Value, nil
 	}
 	return nil, errors.New(fmt.Sprintf("『%s』does not exist", key))
@@ -89,9 +92,10 @@ func (lru *LRU) Get(key string) (interface{}, error) {
 // 删除一个key
 // 如果key存在，删除，并且返回，如果key不存在，返回nil
 func (lru *LRU) Remove(key string) interface{} {
-	if pElement, ok := lru.hashmap[key]; ok { // 存在，则找到queue的位置，挪动到最前面
+	if hashMapValue, ok := lru.hashmap.Load(key); ok { // 存在，则找到queue的位置，挪动到最前面
+		pElement := hashMapValue.(*list.Element)
 		lru.queue.Remove(pElement)
-		delete(lru.hashmap, key)
+		lru.hashmap.Delete(key)
 		return pElement.Value
 	}
 	return nil
