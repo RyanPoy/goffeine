@@ -48,16 +48,18 @@ func TestAddMany(t *testing.T) {
 func TestGetWhenNotExist(t *testing.T) {
 	assert := assert.New(t)
 	q := newAccessOrderQueue(10)
-	v := q.Pop()
+	v, err := q.Pop()
 	assert.Equal(nil, v)
+	assert.Equal(EmptyError, err)
 }
 
 func TestGet(t *testing.T) {
 	assert := assert.New(t)
 	q := newAccessOrderQueue(10)
 	q.Push("id_123")
-	v := q.Pop()
+	v, err := q.Pop()
 	assert.Equal("id_123", v)
+	assert.Equal(nil, err)
 }
 
 func TestFull(t *testing.T) {
@@ -80,10 +82,18 @@ func TestAddWillBeEliminatedAutomaticWhenCapacityIsFull(t *testing.T) {
 	assert.Equal(true, q.IsFull())
 	assert.Equal(3, q.Len())
 
-	assert.Equal("id_456",q.Pop())
-	assert.Equal("id_789", q.Pop())
-	assert.Equal("id_abc", q.Pop())
-	assert.Equal(nil, q.Pop())
+	v, err := q.Pop()
+	assert.Equal("id_456", v)
+
+	v, _ = q.Pop()
+	assert.Equal("id_789", v)
+
+	v, _ = q.Pop()
+	assert.Equal("id_abc", v)
+
+	v, err = q.Pop()
+	assert.Equal(nil, v)
+	assert.Equal(EmptyError, err)
 }
 
 func TestAddWillBeEliminatedAutomaticWhenCapacityIsFull2(t *testing.T) {
@@ -98,8 +108,14 @@ func TestAddWillBeEliminatedAutomaticWhenCapacityIsFull2(t *testing.T) {
 	assert.Equal(true, q.IsFull())
 	assert.Equal(3, q.Len())
 
-	assert.Equal("id_789", q.Pop())
-	assert.Equal("id_123", q.Pop())
-	assert.Equal("id_abc", q.Pop())
+	v, _ := q.Pop()
+	assert.Equal("id_789", v)
+
+	v, _ = q.Pop()
+	assert.Equal("id_123", v)
+
+	v, _ = q.Pop()
+	assert.Equal("id_abc", v)
+
 	assert.Equal(true, q.IsEmpty())
 }

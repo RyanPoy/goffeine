@@ -2,7 +2,12 @@ package queue
 
 import (
 	"container/list"
+	"errors"
 	"sync"
+)
+
+var (
+	EmptyError = errors.New("Queue is empty")
 )
 
 // 顾名思义：AccessOrderQueue。里面封装了一个map和一个list
@@ -78,26 +83,39 @@ func (q *AccessOrderQueue) Push(value interface{}) {
 // 永远删除head
 //
 // @param: value 要添加的内容
-func (q *AccessOrderQueue) Pop() interface{} {
-	if pElement := q.queue.Front(); pElement != nil {
-		return q.queue.Remove(pElement)
+func (q *AccessOrderQueue) Pop() (interface{}, error) {
+	if q.IsEmpty() {
+		return nil, EmptyError
 	}
-	return nil
+	pElement := q.queue.Front()
+	v := q.queue.Remove(pElement)
+	q.hashmap.Delete(pElement.Value)
+	return v, nil
 }
 
-func (q *AccessOrderQueue) First() interface{} {
-	return q.queue.Front().Value
+func (q *AccessOrderQueue) First() (interface{}, error) {
+	if q.IsEmpty() {
+		return nil, EmptyError
+	}
+	return q.queue.Front().Value, nil
 }
 
-func (q *AccessOrderQueue) Last() interface{} {
-	return q.queue.Back().Value
+func (q *AccessOrderQueue) Last() (interface{}, error) {
+	if q.IsEmpty() {
+		return nil, EmptyError
+	}
+	return q.queue.Back().Value, nil
 }
 
 func (q *AccessOrderQueue) RemoveFirst() {
-	q.queue.Remove(q.queue.Front())
+	q.Pop()
 }
 
 func (q *AccessOrderQueue) RemoveLast() {
-	q.queue.Remove(q.queue.Back())
+	if q.IsEmpty() {
+		return
+	}
+	pElement := q.queue.Back()
+	q.queue.Remove(pElement)
+	q.hashmap.Delete(pElement.Value)
 }
-
