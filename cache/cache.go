@@ -3,7 +3,6 @@ package cache
 import (
 	"goffeine/cache/internal/fsketch"
 	"goffeine/cache/internal/queue"
-	"goffeine/cache/internal/node"
 )
 
 type Cache struct {
