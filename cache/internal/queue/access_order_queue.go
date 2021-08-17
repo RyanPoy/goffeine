@@ -56,7 +56,7 @@ func (q *AccessOrderQueue) Contains(value interface{}) bool {
 	return ok
 }
 
-func (q *AccessOrderQueue) getQueueElementOfValue(value interface{}) *list.Element {
+func (q *AccessOrderQueue) GetQueueElementOfValue(value interface{}) *list.Element {
 	r, _ := q.hashmap.Load(value)
 	return r.(*list.Element)
 }
@@ -67,7 +67,7 @@ func (q *AccessOrderQueue) getQueueElementOfValue(value interface{}) *list.Eleme
 // @param: value 要添加的内容
 func (q *AccessOrderQueue) Push(value interface{}) {
 	if q.Contains(value) { // 存在，则找到queue的位置，并且挪动到tail
-		pElement := q.getQueueElementOfValue(value)
+		pElement := q.GetQueueElementOfValue(value)
 		q.queue.MoveToBack(pElement)
 	} else if !q.IsFull() { // 不存在，且空间没有满
 		pElement := q.queue.PushBack(value)
