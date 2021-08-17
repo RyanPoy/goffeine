@@ -1,6 +1,7 @@
 package sketch
 
 import (
+	"goffeine/cache/internal/node"
 	"goffeine/cache/internal/utils"
 	"math"
 	"math/bits"
@@ -52,7 +53,8 @@ func New(n int) *FrequencySketch {
 	return &f
 }
 
-func (s *FrequencySketch) Frequency(x []byte) int {
+func (s *FrequencySketch) Frequency(pNode *node.Node) int {
+	var x []byte = pNode.KeyHash()
 	frequency := math.MaxInt32
 	hashCode := uint64(s.spread(x))
 	start := int((hashCode & 3) << 2)
@@ -65,7 +67,8 @@ func (s *FrequencySketch) Frequency(x []byte) int {
 	return frequency
 }
 
-func (s *FrequencySketch) Increment(x []byte) {
+func (s *FrequencySketch) Increment(pNode *node.Node) {
+	var x []byte = pNode.KeyHash()
 	hashCode := uint64(s.spread(x))
 	start := int((hashCode & 3) << 2)
 	added := 0

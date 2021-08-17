@@ -44,7 +44,7 @@ func (c *Cache) random() bool {
 }
 
 func (c *Cache) addNodeWhenDoesNotExist(pNode *node.Node) {
-	c.fsketch.Increment(pNode.KeyHash())
+	c.fsketch.Increment(pNode)
 	if !c.windowQ.IsFull() { // 没满，则添加
 		c.windowQ.Push(pNode)
 		return
@@ -57,7 +57,7 @@ func (c *Cache) addNodeWhenDoesNotExist(pNode *node.Node) {
 }
 
 func (c *Cache) addNodeToProbation(pNodeC *node.Node) {
-	freqOfNodeC := c.fsketch.Frequency(pNodeC.KeyHash())
+	freqOfNodeC := c.fsketch.Frequency(pNodeC)
 	if freqOfNodeC < 5 { // 被淘汰
 		return
 	}
@@ -70,7 +70,7 @@ func (c *Cache) addNodeToProbation(pNodeC *node.Node) {
 		return
 	}
 	pNodeV := nodeV.(*node.Node)
-	freqOfNodeV := c.fsketch.Frequency(pNodeV.KeyHash())
+	freqOfNodeV := c.fsketch.Frequency(pNodeV)
 	if freqOfNodeC >= 5 && freqOfNodeC < freqOfNodeV {
 		if !c.random() { // 随机淘汰c
 			return
@@ -92,7 +92,7 @@ func (c *Cache) Add(key string, value interface{}) {
 	}
 	// 如果在window或这protected存在，不处理
 	if c.windowQ.Contains(value) || c.protectedQ.Contains(value) {
-		c.fsketch.Increment(pNode.KeyHash())
+		c.fsketch.Increment(pNode)
 		return
 	}
 	// 如果在probation存在，需要移动到protected
@@ -101,14 +101,14 @@ func (c *Cache) Add(key string, value interface{}) {
 		pNode := element.Value.(*node.Node)
 		if !c.protectedQ.IsFull() {
 			c.protectedQ.Push(pNode)
-			c.fsketch.Increment(pNode.KeyHash())
+			c.fsketch.Increment(pNode)
 			return
 		}
 		if nodeC, err := c.protectedQ.Pop(); err == nil {
 			c.protectedQ.Push(pNode)
 			c.addNodeToProbation(nodeC.(*node.Node))
-			c.fsketch.Increment(pNode.KeyHash())
+			c.fsketch.Increment(pNode)
 		}
-		c.fsketch.Increment(pNode.KeyHash())
+		c.fsketch.Increment(pNode)
 	}
 }
