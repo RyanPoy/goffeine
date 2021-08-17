@@ -1,4 +1,4 @@
-package fsketch
+package sketch
 
 import (
 	"encoding/binary"
@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func newFSketch(n int) *FSketch{
+func newFSketch(n int) *FrequencySketch {
 	return New(n)
 }
 

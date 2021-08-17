@@ -1,4 +1,4 @@
-package fsketch
+package sketch
 
 import (
 	"goffeine/cache/internal/utils"
@@ -18,7 +18,7 @@ const (
 // 用一个uint64表示所有的次数，下面详细解释一下：
 // 1、每个元素的Fre最多不超过15，那么可以用 4个bit来表示。从0000到1111。
 // 2、一个int64有64个bit，所以一个int64可以表示(64/4)=16个Fre。
-type FSketch struct {
+type FrequencySketch struct {
 	table     []uint64 // 数据表格
 	length    int      // table的长度
 	counter   int      // 计数器，每次increament就需要+1
@@ -28,7 +28,7 @@ type FSketch struct {
 // New一个FrequencySketch
 //
 // @param n 表示你要存放多少个次数
-func New(n int) *FSketch {
+func New(n int) *FrequencySketch {
 	if n <= 0 {
 		n = 1
 	}
@@ -43,7 +43,7 @@ func New(n int) *FSketch {
 	// 分配容量优化都是按照2的n次方个Byte来分配
 	// 所以如果按照2的n次方个int64来分配
 	length = utils.CeilingPowerOfTwo32(length)
-	f := FSketch{
+	f := FrequencySketch{
 		table:     make([]uint64, length),
 		length:    length,
 		threshold: 10*length,
@@ -52,7 +52,7 @@ func New(n int) *FSketch {
 	return &f
 }
 
-func (s *FSketch) Frequency(x []byte) int {
+func (s *FrequencySketch) Frequency(x []byte) int {
 	frequency := math.MaxInt32
 	hashCode := uint64(s.spread(x))
 	start := int((hashCode & 3) << 2)
@@ -65,7 +65,7 @@ func (s *FSketch) Frequency(x []byte) int {
 	return frequency
 }
 
-func (s *FSketch) Increment(x []byte) {
+func (s *FrequencySketch) Increment(x []byte) {
 	hashCode := uint64(s.spread(x))
 	start := int((hashCode & 3) << 2)
 	added := 0
@@ -85,7 +85,7 @@ func (s *FSketch) Increment(x []byte) {
 //
 // @param i  table的下标
 // @param j  第几个fre
-func (s *FSketch) incrementAt(i, j int) int {
+func (s *FrequencySketch) incrementAt(i, j int) int {
 	// j永远是下面的值：
 	// 0, 1, 2, 3
 	// 4, 5, 6, 7
@@ -114,7 +114,7 @@ func (s *FSketch) incrementAt(i, j int) int {
 // @param item the element's hash
 // @param i the counter depth
 // @return the table index
-func (s *FSketch) indexOf(item uint64, i int) int {
+func (s *FrequencySketch) indexOf(item uint64, i int) int {
 	seed := SEEDS[i]
 	hash := (item + seed) * seed
 	hash += hash >> 32
@@ -122,7 +122,7 @@ func (s *FSketch) indexOf(item uint64, i int) int {
 }
 
 // 散列出一个更加好的hash数值
-func (s *FSketch) spread(key []byte) uint32 {
+func (s *FrequencySketch) spread(key []byte) uint32 {
 	// h算法移植于 Java 的 StringLatin1.hashCode()
 	h := 0
 	for _, v := range key {
@@ -137,7 +137,7 @@ func (s *FSketch) spread(key []byte) uint32 {
 }
 
 // 重置
-func (s *FSketch) reset() {
+func (s *FrequencySketch) reset() {
 	var count uint = 0
 	for i := 0; i < s.length; i++ {
 		count += uint(bits.OnesCount64(s.table[i] & ONE_MASK))

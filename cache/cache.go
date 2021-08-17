@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"goffeine/cache/internal/fsketch"
+	"goffeine/cache/internal/sketch"
 	"goffeine/cache/internal/node"
 	"goffeine/cache/internal/queue"
 	"math/rand"
@@ -10,7 +10,7 @@ import (
 
 type Cache struct {
 	cap        int
-	fsketch    *fsketch.FSketch
+	fsketch    *sketch.FrequencySketch
 	windowQ    *queue.AccessOrderQueue
 	probationQ *queue.AccessOrderQueue
 	protectedQ *queue.AccessOrderQueue
@@ -19,7 +19,7 @@ type Cache struct {
 func New(cap int) Cache {
 	return Cache{
 		cap:        cap,
-		fsketch:    fsketch.New(cap),
+		fsketch:    sketch.New(cap),
 		windowQ:    queue.New(cap),
 		probationQ: queue.New(cap),
 		protectedQ: queue.New(cap),
