@@ -34,7 +34,7 @@ func (c *Cache) Len() int {
 	return c.windowQ.Len() + c.probationQ.Len() + c.protectedQ.Len()
 }
 
-func (c *Cache) Contains(key string) bool {
+func (c *Cache) Contains(key interface{}) bool {
 	return c.windowQ.Contains(key) || c.probationQ.Contains(key) || c.protectedQ.Contains(key)
 }
 
@@ -44,6 +44,7 @@ func (c *Cache) random() bool {
 }
 
 func (c *Cache) addNodeWhenDoesNotExist(pNode *node.Node) {
+	c.fsketch.Increment(pNode.KeyHash())
 	if !c.windowQ.IsFull() { // 没满，则添加
 		c.windowQ.Push(pNode)
 		return
@@ -85,12 +86,13 @@ func (c *Cache) Add(key string, value interface{}) {
 	pNode := node.New(key, value)
 
 	// 如果不在cache里面，先添加到admission
-	if !c.Contains(key) {
+	if !c.Contains(value) {
 		c.addNodeWhenDoesNotExist(pNode)
 		return
 	}
-	// 如果在window存在，不处理
-	if c.windowQ.Contains(key) {
+	// 如果在window或这protected存在，不处理
+	if c.windowQ.Contains(value) || c.protectedQ.Contains(value) {
+		c.fsketch.Increment(pNode.KeyHash())
 		return
 	}
 	// 如果在probation存在，需要移动到protected
@@ -99,14 +101,14 @@ func (c *Cache) Add(key string, value interface{}) {
 		pNode := element.Value.(*node.Node)
 		if !c.protectedQ.IsFull() {
 			c.protectedQ.Push(pNode)
+			c.fsketch.Increment(pNode.KeyHash())
 			return
 		}
-		nodeC, err := c.protectedQ.Pop()
-		if err != nil {
-			return
+		if nodeC, err := c.protectedQ.Pop(); err == nil {
+			c.protectedQ.Push(pNode)
+			c.addNodeToProbation(nodeC.(*node.Node))
+			c.fsketch.Increment(pNode.KeyHash())
 		}
-		c.protectedQ.Push(pNode)
-		c.addNodeToProbation(nodeC.(*node.Node))
+		c.fsketch.Increment(pNode.KeyHash())
 	}
 }
-
