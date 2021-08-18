@@ -49,7 +49,9 @@ func (c *Cache) addNodeWhenDoesNotExist(pNode *node.Node) {
 		c.windowQ.Push(pNode)
 		return
 	}
+
 	pNodeC, err := c.windowQ.Pop()
+	c.windowQ.Push(pNode)
 	if err != nil {
 		return
 	}
@@ -75,8 +77,10 @@ func (c *Cache) addNodeToProbation(pNodeC *node.Node) {
 			return
 		}
 		c.probationQ.RemoveFirst() // 把第1个淘汰掉，本质上就是把nodeV淘汰掉
+		c.probationQ.Push(pNodeC)
 	} else { // freqOfNodeC > freqOfNodeV
 		c.probationQ.RemoveFirst() // 把第1个淘汰掉，本质上就是把nodeV淘汰掉
+		c.probationQ.Push(pNodeC)
 	}
 }
 
@@ -89,9 +93,16 @@ func (c *Cache) Add(key string, value interface{}) {
 		c.addNodeWhenDoesNotExist(pNode)
 		return
 	}
+
 	// 如果在window或这protected存在，不处理
-	if c.windowQ.Contains(pNode) || c.protectedQ.Contains(pNode) {
+	if c.windowQ.Contains(pNode) {
 		c.fsketch.Increment(pNode)
+		c.windowQ.MoveToBack(pNode)
+		return
+	}
+	if c.protectedQ.Contains(pNode) {
+		c.fsketch.Increment(pNode)
+		c.protectedQ.MoveToBack(pNode)
 		return
 	}
 	// 如果在probation存在，需要移动到protected

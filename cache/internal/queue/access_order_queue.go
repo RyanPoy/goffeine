@@ -80,6 +80,15 @@ func (q *AccessOrderQueue) Push(pNode *node.Node) {
 	}
 }
 
+func (q *AccessOrderQueue) MoveToBack(pNode *node.Node) {
+	if q.Contains(pNode) { // 存在，则找到queue的位置，并且挪动到tail
+		pElement := q.GetQueueElementBy(pNode)
+		q.queue.MoveToBack(pElement)
+	} else {
+		q.Push(pNode)
+	}
+}
+
 // 删除内容
 // 永远删除head
 //
