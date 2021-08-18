@@ -34,8 +34,8 @@ func (c *Cache) Len() int {
 	return c.windowQ.Len() + c.probationQ.Len() + c.protectedQ.Len()
 }
 
-func (c *Cache) Contains(key interface{}) bool {
-	return c.windowQ.Contains(key) || c.probationQ.Contains(key) || c.protectedQ.Contains(key)
+func (c *Cache) Contains(pNode *node.Node) bool {
+	return c.windowQ.Contains(pNode) || c.probationQ.Contains(pNode) || c.protectedQ.Contains(pNode)
 }
 
 func (c *Cache) random() bool {
@@ -49,11 +49,11 @@ func (c *Cache) addNodeWhenDoesNotExist(pNode *node.Node) {
 		c.windowQ.Push(pNode)
 		return
 	}
-	nodeC, err := c.windowQ.Pop()
+	pNodeC, err := c.windowQ.Pop()
 	if err != nil {
 		return
 	}
-	c.addNodeToProbation(nodeC.(*node.Node))
+	c.addNodeToProbation(pNodeC)
 }
 
 func (c *Cache) addNodeToProbation(pNodeC *node.Node) {
@@ -65,11 +65,10 @@ func (c *Cache) addNodeToProbation(pNodeC *node.Node) {
 		c.probationQ.Push(pNodeC)
 		return
 	}
-	nodeV, err := c.probationQ.First()
+	pNodeV, err := c.probationQ.First()
 	if err != nil {
 		return
 	}
-	pNodeV := nodeV.(*node.Node)
 	freqOfNodeV := c.fsketch.Frequency(pNodeV)
 	if freqOfNodeC >= 5 && freqOfNodeC < freqOfNodeV {
 		if !c.random() { // 随机淘汰c
@@ -86,27 +85,27 @@ func (c *Cache) Add(key string, value interface{}) {
 	pNode := node.New(key, value)
 
 	// 如果不在cache里面，先添加到admission
-	if !c.Contains(value) {
+	if !c.Contains(pNode) {
 		c.addNodeWhenDoesNotExist(pNode)
 		return
 	}
 	// 如果在window或这protected存在，不处理
-	if c.windowQ.Contains(value) || c.protectedQ.Contains(value) {
+	if c.windowQ.Contains(pNode) || c.protectedQ.Contains(pNode) {
 		c.fsketch.Increment(pNode)
 		return
 	}
 	// 如果在probation存在，需要移动到protected
-	if c.probationQ.Contains(value) {
-		element := c.probationQ.GetQueueElementOfValue(value)
+	if c.probationQ.Contains(pNode) {
+		element := c.probationQ.GetQueueElementBy(pNode)
 		pNode := element.Value.(*node.Node)
 		if !c.protectedQ.IsFull() {
 			c.protectedQ.Push(pNode)
 			c.fsketch.Increment(pNode)
 			return
 		}
-		if nodeC, err := c.protectedQ.Pop(); err == nil {
+		if pNodeC, err := c.protectedQ.Pop(); err == nil {
 			c.protectedQ.Push(pNode)
-			c.addNodeToProbation(nodeC.(*node.Node))
+			c.addNodeToProbation(pNodeC)
 			c.fsketch.Increment(pNode)
 		}
 		c.fsketch.Increment(pNode)

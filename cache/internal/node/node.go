@@ -16,6 +16,10 @@ func New(key string, value interface{}) *Node {
 	}
 }
 
+func (n *Node) Key() string {
+	return n.key
+}
+
 func (n *Node) KeyHash() []byte {
 	return n.keyHash
 }

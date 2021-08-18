@@ -3,6 +3,7 @@ package queue
 import (
 	"container/list"
 	"errors"
+	"goffeine/cache/internal/node"
 	"sync"
 )
 
@@ -15,7 +16,7 @@ var (
 type AccessOrderQueue struct {
 	cap     int
 	queue   *list.List // doubly link queue
-	hashmap sync.Map   // map[interface{}]*list.Element
+	hashmap sync.Map   // map[[]byte]*list.Element
 }
 
 func New(cap int) *AccessOrderQueue {
@@ -51,13 +52,13 @@ func (q *AccessOrderQueue) ReCapacity(cap int) {
 	}
 }
 
-func (q *AccessOrderQueue) Contains(value interface{}) bool {
-	_, ok := q.hashmap.Load(value)
+func (q *AccessOrderQueue) Contains(pNode *node.Node) bool {
+	_, ok := q.hashmap.Load(pNode.Key())
 	return ok
 }
 
-func (q *AccessOrderQueue) GetQueueElementOfValue(value interface{}) *list.Element {
-	r, _ := q.hashmap.Load(value)
+func (q *AccessOrderQueue) GetQueueElementBy(pNode *node.Node) *list.Element {
+	r, _ := q.hashmap.Load(pNode.Key())
 	return r.(*list.Element)
 }
 
@@ -65,17 +66,17 @@ func (q *AccessOrderQueue) GetQueueElementOfValue(value interface{}) *list.Eleme
 // 永远添加到tail
 //
 // @param: value 要添加的内容
-func (q *AccessOrderQueue) Push(value interface{}) {
-	if q.Contains(value) { // 存在，则找到queue的位置，并且挪动到tail
-		pElement := q.GetQueueElementOfValue(value)
+func (q *AccessOrderQueue) Push(pNode *node.Node) {
+	if q.Contains(pNode) { // 存在，则找到queue的位置，并且挪动到tail
+		pElement := q.GetQueueElementBy(pNode)
 		q.queue.MoveToBack(pElement)
 	} else if !q.IsFull() { // 不存在，且空间没有满
-		pElement := q.queue.PushBack(value)
-		q.hashmap.Store(value, pElement)
+		pElement := q.queue.PushBack(pNode)
+		q.hashmap.Store(pNode.Key(), pElement)
 	} else { // 不存在，空间也满了
 		q.Pop()
-		pElement := q.queue.PushBack(value)
-		q.hashmap.Store(value, pElement)
+		pElement := q.queue.PushBack(pNode)
+		q.hashmap.Store(pNode.Key(), pElement)
 	}
 }
 
@@ -83,28 +84,30 @@ func (q *AccessOrderQueue) Push(value interface{}) {
 // 永远删除head
 //
 // @param: value 要添加的内容
-func (q *AccessOrderQueue) Pop() (interface{}, error) {
+func (q *AccessOrderQueue) Pop() (*node.Node, error) {
 	if q.IsEmpty() {
 		return nil, EmptyError
 	}
 	pElement := q.queue.Front()
 	v := q.queue.Remove(pElement)
 	q.hashmap.Delete(pElement.Value)
-	return v, nil
+	return v.(*node.Node), nil
 }
 
-func (q *AccessOrderQueue) First() (interface{}, error) {
+func (q *AccessOrderQueue) First() (*node.Node, error) {
 	if q.IsEmpty() {
 		return nil, EmptyError
 	}
-	return q.queue.Front().Value, nil
+	pElement := q.queue.Front()
+	return pElement.Value.(*node.Node), nil
 }
 
-func (q *AccessOrderQueue) Last() (interface{}, error) {
+func (q *AccessOrderQueue) Last() (*node.Node, error) {
 	if q.IsEmpty() {
 		return nil, EmptyError
 	}
-	return q.queue.Back().Value, nil
+	pElement := q.queue.Back()
+	return pElement.Value.(*node.Node), nil
 }
 
 func (q *AccessOrderQueue) RemoveFirst() {
