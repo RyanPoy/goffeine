@@ -35,7 +35,8 @@ func New(n int) *FrequencySketch {
 	}
 	// 用4个bit来表示一个Fre。所以，理论上分配的容量最好是4的整数倍。
 	// 但是4的整数倍不一定是64的整数倍，所以，分配容量应该是Int64的整数倍最合适。
-	length := n * 4 / 64
+	//length := n * 4 / 64
+	length := n
 
 	if length < 4 {
 		length = 4

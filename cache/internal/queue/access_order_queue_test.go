@@ -105,6 +105,17 @@ func TestAddWillBeEliminatedAutomaticWhenCapacityIsFull(t *testing.T) {
 	assert.Equal(true, v == nil)
 	assert.Equal(EmptyError, err)
 }
+func TestAccessOrderQueue_Remove(t *testing.T) {
+	assert := assert.New(t)
+	q := New(3)
+	pNode1 := node.New("id_123", 123)
+	q.Push(pNode1)
+	pNode2 := node.New("id_456", 456)
+	q.Push(pNode2)
+	q.Remove(pNode1)
+	assert.Equal(false,q.Contains(pNode1))
+	assert.Equal(true,q.queue.Front().Value==pNode2)
+}
 
 func TestAddWillBeEliminatedAutomaticWhenCapacityIsFull2(t *testing.T) {
 	assert := assert.New(t)
