@@ -1,9 +1,9 @@
 package cache
 
 import (
-	"goffeine/cache/internal/sketch"
 	"goffeine/cache/internal/node"
 	"goffeine/cache/internal/queue"
+	"goffeine/cache/internal/sketch"
 	"math/rand"
 	"time"
 )
@@ -122,3 +122,4 @@ func (c *Cache) Add(key string, value interface{}) {
 		c.fsketch.Increment(pNode)
 	}
 }
+git
