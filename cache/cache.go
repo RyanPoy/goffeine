@@ -94,6 +94,11 @@ func (c *Cache) PutWithWeight(key string, value interface{}, weight int) {
 	} //判断权重是否上限
 }
 
+func (c *Cache) Get(key string) interface{} {
+	value, _ := c.GetWithWeight(key)
+	return value
+}
+
 func (c *Cache) GetWithWeight(key string) (interface{}, int) {
 	fmt.Println("========执行Get方法=======")
 	n, ok := c.hashmap.Load(key)
@@ -106,14 +111,9 @@ func (c *Cache) GetWithWeight(key string) (interface{}, int) {
 	return pNode.Value, pNode.Weight
 }
 
-func (c *Cache) Get(key string) interface{} {
-	value, _ := c.GetWithWeight(key)
-	return value
-}
-
-func (c *Cache) afterWrite(newnode *node.Node) {
+func (c *Cache) afterWrite(newNode *node.Node) {
 	//后期使用读写缓冲区可增加此函数功能，当前主要是执行移动操作
-	c.addTask(newnode) //将node添加到三个队列中的一个
+	c.addTask(newNode) //将node添加到三个队列中的一个
 	c.maintenance()
 }
 
@@ -133,10 +133,10 @@ func (c *Cache) maintenance() {
 func (c *Cache) updateTask(nod *node.Node) {
 	//执行更新元素位置工作
 	if nod.IsBelongsToWindow() {
-		if c.wMaxWeight >= nod.Weight { //当前node值小于weight最大值//后期1改为node权重，代表node不超过window最大大小
+		if c.wMaxWeight >= nod.Weight { //当前node值小于weight最大值，后期1改为node权重，代表node不超过window最大大小
 			c.onAccess(nod)
-		} else if c.windowQ.Contains(nod) { //说明超过最大值，移到队首等待被清除
-			c.windowQ.MoveToOrLinkFirst(nod)
+		} else { //说明超过最大值，移到队首等待被清除
+			c.windowQ.MoveToFirst(nod)
 		}
 	} else if nod.IsBelongsToProbation() {
 		if c.probationQ.MaxWeight >= nod.Weight { //后期1改为node权重，代表node不超过probation最大大小
@@ -225,7 +225,7 @@ func (c *Cache) evictFromMain(candidates int) {
 	// 首先默认选择probation的队头和队尾作为victim和candidate，参与淘汰；
 	//若 FrequencyCandidate < 5，则淘汰c；
 	//若 5 <= FrequencyCandidate < FrequencyVictim:
-	// 随机淘汰 victim 或者  candidte
+	// 随机淘汰 victim 或者  candidate
 	//若 FrequencyCandidate > FrequencyVictim 则淘汰v
 	for c.Weight > c.maxWeight {
 		victim, ok1 := c.getVictim()
@@ -292,7 +292,8 @@ func (c *Cache) admit(candidate *node.Node, victim *node.Node) bool { //window�
 	fmt.Printf("========执行admit方法：victim：%s：%d次,candidate:%s：%d=======\n", victim.Key, victimFreq, candidate.Key, candidateFreq)
 	if victimFreq < candidateFreq {
 		return true
-	} else if candidateFreq <= 5 {
+	}
+	if candidateFreq <= 5 {
 		//最大频率为 15，在重置历史记录后减半为 7。
 		// 攻击利用热门候选人被拒绝而有利于热门受害者。 温暖候选者的阈值减少了随机接受的次数，以尽量减少对命中率的影响。
 		return false
@@ -308,32 +309,19 @@ func (c *Cache) onAccess(nod *node.Node) {
 	//更新结点位置
 	c.sketch.Increment(nod) //增加访问频率
 	if nod.IsBelongsToWindow() {
-		c.reorder(c.windowQ, nod)
-	} else if nod.IsBelongsToProbation() {
-		c.reorderProbation(nod)
-	} else {
-		c.reorder(c.protectedQ, nod)
-	}
-}
-
-func (c *Cache) reorder(queue *queue.AccessOrderQueue, nod *node.Node) { //将节点移动至指定队列尾部
-	if queue.Contains(nod) {
-		queue.MoveToOrLinkLast(nod)
-	}
-}
-
-func (c *Cache) reorderProbation(nod *node.Node) { //从probation队列中移动元素
-	if !c.probationQ.Contains(nod) {
-		return
-	}
-	if nod.Weight > c.protectedQ.MaxWeight {
-		//若大小超过protected大小，则放入pb的尾部
-		c.reorder(c.probationQ, nod)
-	} else {
-		//修改pt的权重大小，但现在不考虑权重故不需要
-		c.probationQ.Remove(nod)
-		c.protectedQ.LinkLast(nod)
-		nod.InProtected()
+		c.windowQ.MoveToLast(nod)
+	} else if nod.IsBelongsToProtected() {
+		c.protectedQ.MoveToLast(nod)
+	} else { // IsBelongsToProbation
+		if nod.Weight > c.protectedQ.MaxWeight {
+			//若大小超过protected大小，则放入pb的尾部
+			c.probationQ.MoveToLast(nod)
+		} else {
+			//修改pt的权重大小，但现在不考虑权重故不需要
+			c.probationQ.Remove(nod)
+			c.protectedQ.LinkLast(nod)
+			nod.InProtected()
+		}
 	}
 }
 
