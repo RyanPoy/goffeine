@@ -4,30 +4,31 @@ import (
 	"goffeine/cache/internal/node"
 	"goffeine/cache/internal/queue"
 	"goffeine/cache/internal/sketch"
+	"math/rand"
 	"sync"
 )
 
 type LocalCache struct {
-	maxWeight   int
-	sketch      *sketch.FrequencySketch
-	windowQ     *queue.AccessOrderQueue
-	probationQ  *queue.AccessOrderQueue
-	protectedQ  *queue.AccessOrderQueue
-	hashmap     sync.Map
-	Weight      int //集合当前权重，容量
+	maxWeight  int
+	sketch     *sketch.FrequencySketch
+	windowQ    *queue.AccessOrderQueue
+	probationQ *queue.AccessOrderQueue
+	protectedQ *queue.AccessOrderQueue
+	hashmap    sync.Map
+	Weight     int //集合当前权重，容量
 	//wMaxWeight  int //window大小
 	//ptMaxWeight int // protectedQ size
 }
 
 func NewLocalCache(maxWeight, windowQuqueMaxWeight, protectedQueueMaxWeight int) LocalCache {
 	return LocalCache{
-		maxWeight:   maxWeight,
-		sketch:      sketch.New(maxWeight),
-		windowQ:     queue.NewWith(windowQuqueMaxWeight),
-		probationQ:  queue.New(),
-		protectedQ:  queue.NewWith(protectedQueueMaxWeight),
-		hashmap:     sync.Map{},
-		Weight:      0,                       //集合当前权重，容量
+		maxWeight:  maxWeight,
+		sketch:     sketch.New(maxWeight),
+		windowQ:    queue.NewWith(windowQuqueMaxWeight),
+		probationQ: queue.New(),
+		protectedQ: queue.NewWith(protectedQueueMaxWeight),
+		hashmap:    sync.Map{},
+		Weight:     0, //集合当前权重，容量
 		//wMaxWeight:  windowQuqueMaxWeight,    //window大小
 		//ptMaxWeight: protectedQueueMaxWeight, // protectedQ size
 	}
@@ -49,10 +50,55 @@ func (c *LocalCache) put(pNewNode *node.Node) {
 		c.putToWindowQueue(pNewNode)
 		c.sketch.Increment(pNewNode)
 
-
-		// 如果window的当前权重大于window最大权重，挪动window的first，放到probation的last，直到window的当前权重小于等于window的最大权重。到此：window的当前权重已经收缩到合理值了。
+		c.evictFromWindow()
+		c.evictFromProbation()
 		// loop：如果cache的当前权重超出最大权重，进行淘汰：
 		//   如果probation的 victim(first) 和 candidate(last) 进行对比，按照FrequencyCandidate 和 FrequencyVictim 和 随机数 一起来判断淘汰 Victim 或者 Candidate。到此：Cache的当前权重已经收缩到合理值了。
+	}
+}
+
+// 从protation queue里面驱逐节点，使整体cache的当前权重收缩到最大权重以内。具体策略：
+// 获得probation的 victim(first) 和 candidate(last) ，
+// 按照FrequencyCandidate 和 FrequencyVictim 和 随机数 一起来判断淘汰 victim 或者 candidate
+func (c *LocalCache) evictFromProbation() {
+	for c.Weight > c.maxWeight {
+		victim, ok := c.probationQ.First()
+		if !ok { // 表示没有得到内容
+			return
+		}
+		candidate, ok := c.probationQ.Last()
+		if !ok || victim == candidate { // 到这里没有得到cacidate，但是有victim
+			c.probationQ.Remove(victim)
+			c.hashmap.Delete(victim.Key)
+			c.Weight -= victim.Weight
+			return
+		}
+
+		freqV, freqC := c.sketch.Frequency(victim), c.sketch.Frequency(candidate)
+		if freqC <= 5 {
+			c.probationQ.Remove(candidate)
+			c.hashmap.Delete(candidate.Key)
+			c.Weight -= candidate.Weight
+		} else if freqC > freqV {
+			c.probationQ.Remove(victim)
+			c.hashmap.Delete(victim.Key)
+			c.Weight -= victim.Weight
+		} else if rand.Int()&127 == 0 {
+			c.probationQ.Remove(victim)
+			c.hashmap.Delete(victim.Key)
+			c.Weight -= victim.Weight
+		}
+	}
+}
+
+// 从window queue里面驱逐节点，使其当前权重收缩到最大权重以内。具体策略：
+// 如果window的当前权重大于window最大权重，挪动window的first，放到probation的last。直到window的当前权重小于等于window的最大权重。
+func (c *LocalCache) evictFromWindow() {
+	for c.windowQ.Weight() > c.windowQ.MaxWeight {
+		if node, ok := c.windowQ.UnlinkFirst(); ok {
+			c.probationQ.LinkLast(node)
+			node.InProbation()
+		}
 	}
 }
 
@@ -66,9 +112,9 @@ func (c *LocalCache) putToWindowQueue(pNode *node.Node) {
 		} else {
 			c.windowQ.LinkLast(pNode)
 		}
+		c.Weight += pNode.Weight
 	}
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
