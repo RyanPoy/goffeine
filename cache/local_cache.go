@@ -110,6 +110,7 @@ func (c *LocalCache) putToWindowQueue(pNode *node.Node) {
 		} else {
 			c.windowQ.LinkLast(pNode)
 		}
+		pNode.InWindow()
 		c.Weight += pNode.Weight
 	}
 }
