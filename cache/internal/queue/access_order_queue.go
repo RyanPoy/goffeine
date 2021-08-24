@@ -44,68 +44,38 @@ func (q *AccessOrderQueue) GetQueueElementBy(pNode *node.Node) *list.Element {
 	return r.(*list.Element)
 }
 
-
-// 添加内容
-// 永远添加到tail
-// @param: value 要添加的内容
-func (q *AccessOrderQueue) Push(pNode *node.Node) {
-	if q.Contains(pNode) { // 存在，则找到queue的位置，并且挪动到tail
-		pElement := q.GetQueueElementBy(pNode)
-		q.queue.MoveToBack(pElement)
-	} else { // 不存在，空间也满了
-		pElement := q.queue.PushBack(pNode)
-		q.data.Store(pNode.Key, pElement)
-	}
-}
-
-func (q *AccessOrderQueue) MoveToBack(pNode *node.Node) {
-	if q.Contains(pNode) { // 存在，则找到queue的位置，并且挪动到tail
-		pElement := q.GetQueueElementBy(pNode)
-		q.queue.MoveToBack(pElement)
-	} else {
-		q.Push(pNode)
-	}
-}
-
-func (q *AccessOrderQueue) Remove(pNode *node.Node) {
-	//移除nod结点
-	if q.Contains(pNode) {
-		pElement := q.GetQueueElementBy(pNode)
-		q.data.Delete(pNode.Key)
-		q.queue.Remove(pElement)
-	}
-}
-
-func (q *AccessOrderQueue) AddFirst(pNode *node.Node) {
-	//添加到队头
-	if q.Contains(pNode) { // 存在，则找到queue的位置，并且挪动到tail
-		pElement := q.GetQueueElementBy(pNode)
-		q.queue.MoveToFront(pElement)
-	}
-	pElement := q.queue.PushFront(pNode)
-	q.data.Store(pNode.Key, pElement)
-}
-func (q *AccessOrderQueue) MoveToFront(pNode *node.Node) {
+func (q *AccessOrderQueue) MoveToOrLinkFirst(pNode *node.Node) {
 	//将nod结点移到队首
 	if q.Contains(pNode) { // 存在，则找到queue的位置，并且挪动到tail
 		pElement := q.GetQueueElementBy(pNode)
 		q.queue.MoveToFront(pElement)
 	} else {
-		q.AddFirst(pNode)
+		q.LinkFirst(pNode)
 	}
 }
 
-// 删除内容
-// 永远删除head
-// @param: value 要添加的内容
-func (q *AccessOrderQueue) Pop() (*node.Node, bool) {
-	if q.IsEmpty() {
-		return nil, false
+func (q *AccessOrderQueue) MoveToOrLinkLast(pNode *node.Node) {
+	if q.Contains(pNode) { // 存在，则找到queue的位置，并且挪动到tail
+		pElement := q.GetQueueElementBy(pNode)
+		q.queue.MoveToBack(pElement)
+	} else {
+		q.LinkLast(pNode)
 	}
-	pElement := q.queue.Front()
-	v := q.queue.Remove(pElement)
-	q.data.Delete(pElement.Value)
-	return v.(*node.Node), true
+}
+
+func (q *AccessOrderQueue) MoveToFirst(pNode *node.Node) {
+	//将nod结点移到队首
+	if q.Contains(pNode) { // 存在，则找到queue的位置，并且挪动到tail
+		pElement := q.GetQueueElementBy(pNode)
+		q.queue.MoveToFront(pElement)
+	}
+}
+
+func (q *AccessOrderQueue) MoveLinkLast(pNode *node.Node) {
+	if q.Contains(pNode) { // 存在，则找到queue的位置，并且挪动到tail
+		pElement := q.GetQueueElementBy(pNode)
+		q.queue.MoveToBack(pElement)
+	}
 }
 
 func (q *AccessOrderQueue) First() (*node.Node, bool) {
@@ -124,15 +94,68 @@ func (q *AccessOrderQueue) Last() (*node.Node, bool) {
 	return pElement.Value.(*node.Node), true
 }
 
+func (q *AccessOrderQueue) LinkFirst(pNode *node.Node) {
+	//添加到队头
+	if q.Contains(pNode) { // 存在，则找到queue的位置，并且挪动到tail
+		pElement := q.GetQueueElementBy(pNode)
+		q.queue.MoveToFront(pElement)
+	}
+	pElement := q.queue.PushFront(pNode)
+	q.data.Store(pNode.Key, pElement)
+}
+
+// 添加内容
+// 永远添加到tail
+// @param: value 要添加的内容
+func (q *AccessOrderQueue) LinkLast(pNode *node.Node) {
+	if q.Contains(pNode) { // 存在，则找到queue的位置，并且挪动到tail
+		pElement := q.GetQueueElementBy(pNode)
+		q.queue.MoveToBack(pElement)
+	} else { // 不存在，空间也满了
+		pElement := q.queue.PushBack(pNode)
+		q.data.Store(pNode.Key, pElement)
+	}
+}
+
+// 删除内容
+// 永远删除head
+// @param: value 要添加的内容
+func (q *AccessOrderQueue) UnlinkFirst() (*node.Node, bool) {
+	if q.IsEmpty() {
+		return nil, false
+	}
+	pElement := q.queue.Front()
+	v := q.queue.Remove(pElement)
+	q.data.Delete(pElement.Value)
+	return v.(*node.Node), true
+}
+
+// 删除内容
+// 永远删除head
+// @param: value 要添加的内容
+func (q *AccessOrderQueue) UnlinkLast() (*node.Node, bool) {
+	if q.IsEmpty() {
+		return nil, false
+	}
+	pElement := q.queue.Back()
+	v := q.queue.Remove(pElement)
+	q.data.Delete(pElement.Value)
+	return v.(*node.Node), true
+}
+
 func (q *AccessOrderQueue) RemoveFirst() {
-	q.Pop()
+	q.UnlinkFirst()
 }
 
 func (q *AccessOrderQueue) RemoveLast() {
-	if q.IsEmpty() {
-		return
+	q.UnlinkLast()
+}
+
+func (q *AccessOrderQueue) Remove(pNode *node.Node) {
+	//移除nod结点
+	if q.Contains(pNode) {
+		pElement := q.GetQueueElementBy(pNode)
+		q.data.Delete(pNode.Key)
+		q.queue.Remove(pElement)
 	}
-	pElement := q.queue.Back()
-	q.queue.Remove(pElement)
-	q.data.Delete(pElement.Value)
 }

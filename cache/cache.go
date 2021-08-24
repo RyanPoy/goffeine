@@ -136,14 +136,14 @@ func (c *Cache) updateTask(nod *node.Node) {
 		if c.wMaxWeight >= nod.Weight { //当前node值小于weight最大值//后期1改为node权重，代表node不超过window最大大小
 			c.onAccess(nod)
 		} else if c.windowQ.Contains(nod) { //说明超过最大值，移到队首等待被清除
-			c.windowQ.MoveToFront(nod)
+			c.windowQ.MoveToOrLinkFirst(nod)
 		}
 	} else if nod.IsBelongsToProbation() {
 		if c.probationQ.MaxWeight >= nod.Weight { //后期1改为node权重，代表node不超过probation最大大小
 			c.onAccess(nod)
 		} else { //说明超过最大值，移除然后放入window队头等待驱逐比较
 			c.probationQ.Remove(nod)
-			c.windowQ.AddFirst(nod)
+			c.windowQ.LinkFirst(nod)
 			//修改window,probation权重，此时不需要
 		}
 	} else {
@@ -151,7 +151,7 @@ func (c *Cache) updateTask(nod *node.Node) {
 			c.onAccess(nod)
 		} else { //说明超过最大值，移除然后放入window队头等待驱逐比较
 			c.protectedQ.Remove(nod)
-			c.windowQ.AddFirst(nod)
+			c.windowQ.LinkFirst(nod)
 			//修改window权重，此时不需要
 		}
 	}
@@ -165,10 +165,10 @@ func (c *Cache) addTask(nod *node.Node) {
 	//获取锁执行写操作
 	//当前只用判断大小并插入即可
 	if c.wMaxWeight >= nod.Weight { //说明没有超过最大值，移到队尾部
-		c.windowQ.Push(nod)
+		c.windowQ.LinkLast(nod)
 		c.onAccess(nod)
 	} else { //代表node超过window最大大小
-		c.windowQ.AddFirst(nod)
+		c.windowQ.LinkFirst(nod)
 	}
 }
 func (c *Cache) evictEntries() {
@@ -187,7 +187,7 @@ func (c *Cache) evictFromWindow() int {
 		}
 		nod.InProbation()
 		c.windowQ.Remove(nod)
-		c.probationQ.Push(nod)
+		c.probationQ.LinkLast(nod)
 		candidates++
 		//修改权重
 	}
@@ -318,7 +318,7 @@ func (c *Cache) onAccess(nod *node.Node) {
 
 func (c *Cache) reorder(queue *queue.AccessOrderQueue, nod *node.Node) { //将节点移动至指定队列尾部
 	if queue.Contains(nod) {
-		queue.MoveToBack(nod)
+		queue.MoveToOrLinkLast(nod)
 	}
 }
 
@@ -332,7 +332,7 @@ func (c *Cache) reorderProbation(nod *node.Node) { //从probation队列中移动
 	} else {
 		//修改pt的权重大小，但现在不考虑权重故不需要
 		c.probationQ.Remove(nod)
-		c.protectedQ.Push(nod)
+		c.protectedQ.LinkLast(nod)
 		nod.InProtected()
 	}
 }
@@ -342,7 +342,7 @@ func (c *Cache) demoteFromMainProtected() {
 		nod, ok := c.protectedQ.First()
 		if ok {
 			c.protectedQ.Remove(nod)
-			c.probationQ.Push(nod)
+			c.probationQ.LinkLast(nod)
 			nod.InProbation()
 		}
 	}
