@@ -254,12 +254,12 @@ func (c *Cache) evictFromMain(candidates int) {
 			continue
 		}
 
-		candidates--
 		if c.admit(candidate, victim) { // 淘汰victim
 			c.evictEntry(victim)
 		} else {
 			c.evictEntry(candidate)
 		}
+		candidates--
 	}
 }
 
