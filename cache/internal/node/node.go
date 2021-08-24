@@ -19,12 +19,16 @@ type Node struct {
 }
 
 func New(key string, value interface{}) *Node {
+	return NewWithWeight(key, value, 1)
+}
+
+func NewWithWeight(key string, value interface{}, weight int) *Node {
 	return &Node{
 		Key:      key,
 		KeyHash:  []byte(key),
 		Value:    value,
 		position: WINDOW,
-		Weight:   1,
+		Weight:   weight,
 	}
 }
 
