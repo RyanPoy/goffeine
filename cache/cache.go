@@ -8,6 +8,21 @@ import (
 	"math/rand"
 	"sync"
 )
+
+func percentMainOf(c *Cache) float64 {
+	if c != nil {
+		return float64(c.wsize * 1.0 / c.cap)
+	}
+	return 0.99
+}
+
+func percentMainProtectedOf(c *Cache) float64 {
+	if c != nil {
+		return float64(c.ptsize * 1.0 / c.cap)
+	}
+	return 0.8
+}
+
 /*
 1.队列内部设置为无界，不要在插入元素时对队列的长度做判断
 2.hashmap在cache中也保留一份
@@ -15,7 +30,7 @@ import (
 */
 type Cache struct {
 	cap        int
-	sketch    *sketch.FrequencySketch
+	sketch     *sketch.FrequencySketch
 	windowQ    *queue.AccessOrderQueue
 	probationQ *queue.AccessOrderQueue
 	protectedQ *queue.AccessOrderQueue
@@ -23,31 +38,28 @@ type Cache struct {
 	weight     int //集合当前权重，容量
 	wsize      int //window大小
 	ptsize     int // protectedQ size
-	percentMain           float64 //main空间比列
-	percentMainProtected float64 //protected比例
 }
 
 func New(cap int) Cache {
 	//没有异常如何判断是否成功？如果cap<0？？
-	percentMain := 0.99
-	percentMainProtected := 0.8
+	percentMain := percentMainOf(nil)
+	percentMainProtected := percentMainProtectedOf(nil)
+
 	wsize := cap - int(float64(cap)*percentMain)
 	ptsize := int(percentMainProtected * float64(cap-wsize))
 	pbsize := cap - wsize - ptsize
 
-	fmt.Printf("======初始化大小：window：%d，probatio：%d，protected：%d\n",wsize,pbsize,ptsize)
+	fmt.Printf("======初始化大小：window：%d，probatio：%d，protected：%d\n", wsize, pbsize, ptsize)
 	var cache = Cache{
-		cap:                    cap,
-		sketch:                 sketch.New(cap),
-		windowQ:				queue.New(),
-		probationQ:				queue.New(),
-		protectedQ:				queue.New(),
-		hashmap:                sync.Map{},
-		weight:                 0,
-		percentMain:           	percentMain,
-		percentMainProtected: 	percentMainProtected,
-		wsize:                  wsize,
-		ptsize: ptsize,
+		cap:        cap,
+		sketch:     sketch.New(cap),
+		windowQ:    queue.New(),
+		probationQ: queue.New(),
+		protectedQ: queue.New(),
+		hashmap:    sync.Map{},
+		weight:     0,
+		wsize:      wsize,
+		ptsize:     ptsize,
 	}
 	cache.windowQ.MaxWeight = wsize
 	cache.probationQ.MaxWeight = pbsize
@@ -57,22 +69,17 @@ func New(cap int) Cache {
 
 func NewWith(cap, wsize, ptsize int) Cache {
 	pbsize := cap - wsize - ptsize
-	percentMain := 1- (wsize * 1.0 / cap)
-	percentMainProtected := ptsize * 1.0 / cap
-
-	fmt.Printf("======初始化大小：window：%d，probatio：%d，protected：%d\n",wsize,pbsize,ptsize)
+	fmt.Printf("======初始化大小：window：%d，probatio：%d，protected：%d\n", wsize, pbsize, ptsize)
 	var cache = Cache{
-		cap:                  cap,
-		sketch:               sketch.New(cap),
-		windowQ:              queue.New(),
-		probationQ:           queue.New(),
-		protectedQ:           queue.New(),
-		hashmap:              sync.Map{},
-		weight:               0,
-		percentMain:          float64(percentMain),
-		percentMainProtected: float64(percentMainProtected),
-		wsize:                wsize,
-		ptsize: ptsize,
+		cap:        cap,
+		sketch:     sketch.New(cap),
+		windowQ:    queue.New(),
+		probationQ: queue.New(),
+		protectedQ: queue.New(),
+		hashmap:    sync.Map{},
+		weight:     0,
+		wsize:      wsize,
+		ptsize:     ptsize,
 	}
 	cache.windowQ.MaxWeight = wsize
 	cache.probationQ.MaxWeight = pbsize
@@ -84,16 +91,14 @@ func (c *Cache) Capacity() int {
 	return c.cap
 }
 
-//func (c *Cache) Len() int {
-//
-//}
-func(c *Cache) Weight() int{
+func (c *Cache) Weight() int {
 	return c.weight
 }
 
 func (c *Cache) Contains(pNode *node.Node) bool {
 	return c.windowQ.Contains(pNode) || c.probationQ.Contains(pNode) || c.protectedQ.Contains(pNode)
 }
+
 // 往cache里面添加内容
 func (c *Cache) Put(key string, value interface{}) {
 	fmt.Println("========执行put方法=======")
@@ -104,7 +109,7 @@ func (c *Cache) Put(key string, value interface{}) {
 	if n == nil {
 		//不存在则新建node放入map
 		newnode := node.New(key, value)
-		c.weight+=newnode.Weight()
+		c.weight += newnode.Weight()
 		c.hashmap.Store(key, newnode)
 		//fmt.Println("添加node",newnode)
 		//写操作后的维护，调整队列或驱逐，后期可改为异步
@@ -130,35 +135,35 @@ func (c *Cache) PutWithWeight(key string, value interface{}, weight int) {
 		//不存在则新建node放入map
 		newnode := node.New(key, value)
 		newnode.SetWeight(weight)
-		c.weight+=weight
+		c.weight += weight
 		c.hashmap.Store(key, newnode)
 		//fmt.Println("添加node",newnode)
 		//写操作后的维护，调整队列或驱逐，后期可改为异步
 		c.afterWrite(newnode)
 	} else {
 		oldnode := n.(*node.Node)
-		c.weight-=oldnode.Weight()
+		c.weight -= oldnode.Weight()
 		//存在则覆盖nodevalue值
 		//fmt.Println("old值：",oldnode.Value())
 		oldnode.SetValue(value)
 		oldnode.SetWeight(weight)
-		c.weight+=weight
+		c.weight += weight
 
 		//fmt.Println("new值：",oldnode.Value())
 		//由于没有新值插入，维护与读操作后的维护相同，后期可改为异步
 		c.afterRead(oldnode)
 	} //判断权重是否上限
 }
-func (c *Cache) GetWithWeight(key string) (interface{},int) {
+func (c *Cache) GetWithWeight(key string) (interface{}, int) {
 	fmt.Println("========执行Get方法=======")
 	n, ok := c.hashmap.Load(key)
 	if ok { // 找到了
 		oldnode := n.(*node.Node)
 		//由于没有新值插入，维护与读操作后的维护相同，后期可改为异步
 		c.afterRead(oldnode)
-		return oldnode.Value(),oldnode.Weight()
+		return oldnode.Value(), oldnode.Weight()
 	} else {
-		return nil,0
+		return nil, 0
 	}
 }
 func (c *Cache) Get(key string) interface{} {
@@ -189,21 +194,17 @@ func (c *Cache) maintenance() {
 	//执行维护工作，查看是否过期，队列是否满等操作。
 	//当前主要是执行队列满的驱逐策略
 	c.evictEntries()
-	c.demoteFromMainProtected()//收缩protected大小
+	c.demoteFromMainProtected() //收缩protected大小
 }
 func (c *Cache) updateTask(nod *node.Node) {
 	//执行更新元素位置工作
-	//position := nod.Position()
-	//switch position {
-	//case WINDOW: //处于window
-	if (nod.IsBelongsToWindow()) {
+	if nod.IsBelongsToWindow() {
 		if c.wsize >= nod.Weight() { //当前node值小于weight最大值//后期1改为node权重，代表node不超过window最大大小
 			c.onAccess(nod)
 		} else if c.windowQ.Contains(nod) { //说明超过最大值，移到队首等待被清除
 			c.windowQ.MoveToFront(nod)
 		}
-	} else if (nod.IsBelongsToProbation()) {
-		//case PROBATION: //处于probation
+	} else if nod.IsBelongsToProbation() {
 		if c.probationQ.MaxWeight >= nod.Weight() { //后期1改为node权重，代表node不超过probation最大大小
 			c.onAccess(nod)
 		} else { //说明超过最大值，移除然后放入window队头等待驱逐比较
@@ -212,7 +213,6 @@ func (c *Cache) updateTask(nod *node.Node) {
 			//修改window,probation权重，此时不需要
 		}
 	} else {
-	//case PROTECTED: //处于protected状态
 		if c.protectedQ.MaxWeight >= nod.Weight() { //后期1改为node权重，代表node不超过probation最大大小
 			c.onAccess(nod)
 		} else { //说明超过最大值，移除然后放入window队头等待驱逐比较
@@ -230,7 +230,7 @@ func (c *Cache) addTask(nod *node.Node) {
 	//过期等策略
 	//获取锁执行写操作
 	//当前只用判断大小并插入即可
-	if c.wsize >= nod.Weight() {//说明没有超过最大值，移到队尾部
+	if c.wsize >= nod.Weight() { //说明没有超过最大值，移到队尾部
 		c.windowQ.Push(nod)
 		c.onAccess(nod)
 	} else { //代表node超过window最大大小
@@ -271,7 +271,7 @@ func (c *Cache) getVictim() (*node.Node, error) {
 	return nod, err
 }
 
-func (c *Cache) getCandidate(fromWindow bool) (*node.Node, error){
+func (c *Cache) getCandidate(fromWindow bool) (*node.Node, error) {
 	if fromWindow {
 		return c.windowQ.First()
 	}
@@ -330,7 +330,7 @@ func (c *Cache) evictFromMain(candidates int) {
 
 func (c *Cache) evictFromMainOrige(candidates int) {
 	victimQueue := node.PROBATION //probation 受害者由probation选出
-	victim , _ := c.probationQ.First()
+	victim, _ := c.probationQ.First()
 	candidate, _ := c.probationQ.Last()
 	for c.weight > c.cap {
 		fmt.Println("========执行evictFromMain：最大容量已满=========")
@@ -367,12 +367,12 @@ func (c *Cache) evictFromMainOrige(candidates int) {
 		}
 		//忽略值引用的情况
 		//竞选者本身权重超过最大值直接驱逐，不考虑
-		if candidate.Weight()>c.cap{
-			evict:=candidate
-			if candidates >0{
-				candidate=c.GetPreviousInAccessOrder(candidate)
-			}else{
-				candidate=c.GetNextInAccessOrder(candidate)
+		if candidate.Weight() > c.cap {
+			evict := candidate
+			if candidates > 0 {
+				candidate = c.GetPreviousInAccessOrder(candidate)
+			} else {
+				candidate = c.GetNextInAccessOrder(candidate)
 			}
 			candidates--
 			c.evictEntry(evict)
@@ -398,7 +398,7 @@ func (c *Cache) evictFromMainOrige(candidates int) {
 	}
 }
 
-func (c *Cache)GetPreviousInAccessOrder(nod *node.Node) *node.Node{
+func (c *Cache) GetPreviousInAccessOrder(nod *node.Node) *node.Node {
 	if nod.IsBelongsToWindow() {
 		return c.windowQ.GetNextNodeBy(nod)
 	} else if nod.IsBelongsToProbation() {
@@ -406,7 +406,7 @@ func (c *Cache)GetPreviousInAccessOrder(nod *node.Node) *node.Node{
 	}
 	return c.protectedQ.GetNextNodeBy(nod)
 }
-func (c *Cache)GetNextInAccessOrder(nod *node.Node) *node.Node{
+func (c *Cache) GetNextInAccessOrder(nod *node.Node) *node.Node {
 	if nod.IsBelongsToWindow() {
 		return c.windowQ.GetPrevNodeBy(nod)
 	} else if nod.IsBelongsToProbation() {
@@ -421,12 +421,12 @@ func (c *Cache) evictEntry(nod *node.Node) bool {
 	//分别判断三种情况导致的驱逐，并更具情况设置是否复活，synchronized执行
 	//移除node监听器
 	//移除hashmap里的元素
-	fmt.Println("=========执行evictEntry:",nod.Key())
+	fmt.Println("=========执行evictEntry:", nod.Key())
 	c.hashmap.Delete(nod.Key())
-	c.weight-=nod.Weight()
+	c.weight -= nod.Weight()
 	if nod.IsBelongsToWindow() {
 		c.windowQ.Remove(nod)
-	} else if nod.IsBelongsToProbation(){
+	} else if nod.IsBelongsToProbation() {
 		c.probationQ.Remove(nod)
 	} else {
 		c.protectedQ.Remove(nod)
@@ -440,7 +440,7 @@ func (c *Cache) makeDead(nod *node.Node) { //加锁完成，修改权重
 func (c *Cache) admit(candidate *node.Node, victim *node.Node) bool { //window到probation晋升
 	victimFreq := c.sketch.Frequency(victim)
 	candidateFreq := c.sketch.Frequency(candidate)
-	fmt.Printf("========执行admit方法：victim：%s：%d次,candidate:%s：%d=======\n",victim.Key(),victimFreq,candidate.Key(),candidateFreq)
+	fmt.Printf("========执行admit方法：victim：%s：%d次,candidate:%s：%d=======\n", victim.Key(), victimFreq, candidate.Key(), candidateFreq)
 	if victimFreq < candidateFreq {
 		return true
 	} else if candidateFreq <= 5 {
@@ -476,7 +476,7 @@ func (c *Cache) reorderProbation(nod *node.Node) { //从probation队列中移动
 	if !c.probationQ.Contains(nod) {
 		return
 	}
-	if nod.Weight()>c.protectedQ.MaxWeight   {
+	if nod.Weight() > c.protectedQ.MaxWeight {
 		//若大小超过protected大小，则放入pb的尾部
 		c.reorder(c.probationQ, nod)
 	} else {
@@ -488,8 +488,8 @@ func (c *Cache) reorderProbation(nod *node.Node) { //从probation队列中移动
 }
 
 func (c *Cache) demoteFromMainProtected() {
-	for c.protectedQ.Weight()>c.ptsize{
-		nod,err:=c.protectedQ.First()
+	for c.protectedQ.Weight() > c.ptsize {
+		nod, err := c.protectedQ.First()
 		if err == nil {
 			c.protectedQ.Remove(nod)
 			c.probationQ.Push(nod)
@@ -497,5 +497,4 @@ func (c *Cache) demoteFromMainProtected() {
 		}
 	}
 }
-
 
