@@ -212,15 +212,6 @@ func (c *Cache) getCandidate(fromWindow bool) (*node.Node, bool) {
 	return c.probationQ.Last()
 }
 
-func (c *Cache) getQueueByNode(nod *node.Node) *queue.AccessOrderQueue {
-	if nod.IsBelongsToWindow() {
-		return c.windowQ
-	} else if nod.IsBelongsToProtected() {
-		return c.probationQ
-	}
-	return c.protectedQ
-}
-
 func (c *Cache) evictFromMain(candidates int) {
 	// 首先默认选择probation的队头和队尾作为victim和candidate，参与淘汰；
 	//若 FrequencyCandidate < 5，则淘汰c；
@@ -243,12 +234,7 @@ func (c *Cache) evictFromMain(candidates int) {
 			continue
 		}
 		// 执行到这里，则：ok1 && ok2 ，表示 victim 和 candidate都有
-		if victim == candidate {
-			c.evictEntry(candidate)
-			candidates--
-			continue
-		}
-		if candidate.Weight > c.maxWeight {
+		if victim == candidate || candidate.Weight > c.maxWeight {
 			c.evictEntry(candidate)
 			candidates--
 			continue
@@ -305,6 +291,7 @@ func (c *Cache) admit(candidate *node.Node, victim *node.Node) bool { //window�
 func (c *Cache) removalTask(nod *node.Node) {
 	//执行删除元素任务
 }
+
 func (c *Cache) onAccess(nod *node.Node) {
 	//更新结点位置
 	c.sketch.Increment(nod) //增加访问频率
@@ -315,7 +302,7 @@ func (c *Cache) onAccess(nod *node.Node) {
 	} else { // IsBelongsToProbation
 		if nod.Weight > c.protectedQ.MaxWeight {
 			//若大小超过protected大小，则放入pb的尾部
-			c.probationQ.MoveToLast(nod)
+			//c.probationQ.MoveToLast(nod) // @todo: java 版本的caffeine里面没有做处理
 		} else {
 			//修改pt的权重大小，但现在不考虑权重故不需要
 			c.probationQ.Remove(nod)
