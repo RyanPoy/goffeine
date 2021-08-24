@@ -68,8 +68,7 @@ func New(cap int) Cache {
 }
 
 func NewWith(cap, wsize, ptsize int) Cache {
-	pbsize := cap - wsize - ptsize
-	fmt.Printf("======初始化大小：window：%d，probatio：%d，protected：%d\n", wsize, pbsize, ptsize)
+	fmt.Printf("======初始化大小：window：%d，protected：%d\n", wsize, ptsize)
 	var cache = Cache{
 		cap:        cap,
 		sketch:     sketch.New(cap),
@@ -82,7 +81,7 @@ func NewWith(cap, wsize, ptsize int) Cache {
 		ptsize:     ptsize,
 	}
 	cache.windowQ.MaxWeight = wsize
-	cache.probationQ.MaxWeight = pbsize
+	cache.probationQ.MaxWeight = cap - wsize - ptsize
 	cache.protectedQ.MaxWeight = ptsize
 	return cache
 }
@@ -105,8 +104,8 @@ func (c *Cache) Put(key string, value interface{}) {
 	//增加频率
 	//c.sketch.Increment( []byte(key))
 	//获取map的key，看key是否已经存在
-	n, _ := c.hashmap.Load(key)
-	if n == nil {
+	n, ok := c.hashmap.Load(key)
+	if !ok {
 		//不存在则新建node放入map
 		newnode := node.New(key, value)
 		c.weight += newnode.Weight()
@@ -130,8 +129,8 @@ func (c *Cache) PutWithWeight(key string, value interface{}, weight int) {
 	//增加频率
 	//c.sketch.Increment( []byte(key))
 	//获取map的key，看key是否已经存在
-	n, _ := c.hashmap.Load(key)
-	if n == nil {
+	n, ok := c.hashmap.Load(key)
+	if !ok {
 		//不存在则新建node放入map
 		newnode := node.New(key, value)
 		newnode.SetWeight(weight)
@@ -168,15 +167,15 @@ func (c *Cache) GetWithWeight(key string) (interface{}, int) {
 }
 func (c *Cache) Get(key string) interface{} {
 	fmt.Println("========执行Get方法=======")
-	n, _ := c.hashmap.Load(key)
-	if n != nil {
-		oldnode := n.(*node.Node)
-		//由于没有新值插入，维护与读操作后的维护相同，后期可改为异步
-		c.afterRead(oldnode)
-		return oldnode.Value()
-	} else {
+	n, ok := c.hashmap.Load(key)
+	if !ok {
 		return nil
 	}
+
+	oldnode := n.(*node.Node)
+	//由于没有新值插入，维护与读操作后的维护相同，后期可改为异步
+	c.afterRead(oldnode)
+	return oldnode.Value()
 }
 
 func (c *Cache) afterWrite(newnode *node.Node) {
@@ -328,93 +327,6 @@ func (c *Cache) evictFromMain(candidates int) {
 	}
 }
 
-func (c *Cache) evictFromMainOrige(candidates int) {
-	victimQueue := node.PROBATION //probation 受害者由probation选出
-	victim, _ := c.probationQ.First()
-	candidate, _ := c.probationQ.Last()
-	for c.weight > c.cap {
-		fmt.Println("========执行evictFromMain：最大容量已满=========")
-		if candidates == 0 {
-			candidate, _ = c.windowQ.Last()
-		}
-		if candidate == nil && victim == nil { //如果从window和probation里都没有元素，就从protected里面取
-			fmt.Println("========执行evictFromMain：candidate == nil && victim == nil=========")
-			if victimQueue == node.PROBATION {
-				victim, _ = c.protectedQ.First()
-				victimQueue = node.PROTECTED //protected
-				continue
-			} else if victimQueue == node.PROTECTED {
-				victim, _ = c.windowQ.First()
-				victimQueue = 0 //window
-				continue
-			}
-			break
-		}
-		//此处权重为0情况，因为计数场景权重都为1，后期根据情况扩展
-		//如果只有一个权重立即驱逐
-		if victim == nil {
-			previous := c.GetPreviousInAccessOrder(candidate)
-			evict := candidate
-			candidate = previous
-			candidates--
-			c.evictEntry(evict)
-			continue
-		} else if candidate == nil {
-			evict := victim
-			victim = c.GetNextInAccessOrder(victim)
-			c.evictEntry(evict)
-			continue
-		}
-		//忽略值引用的情况
-		//竞选者本身权重超过最大值直接驱逐，不考虑
-		if candidate.Weight() > c.cap {
-			evict := candidate
-			if candidates > 0 {
-				candidate = c.GetPreviousInAccessOrder(candidate)
-			} else {
-				candidate = c.GetNextInAccessOrder(candidate)
-			}
-			candidates--
-			c.evictEntry(evict)
-			continue
-		}
-		//驱逐频率最低的条目
-		candidates--
-		fmt.Println("========执行evictFromMain：admit（）=========")
-		if c.admit(candidate, victim) { //判断是否驱逐受害者，true驱逐受害者
-			evict := victim
-			victim = c.GetNextInAccessOrder(victim)
-			c.evictEntry(evict)
-			candidate = c.GetPreviousInAccessOrder(candidate)
-		} else { //否，驱逐竞争者
-			evict := candidate
-			if candidates > 0 {
-				candidate = c.GetPreviousInAccessOrder(candidate)
-			} else {
-				candidate = c.GetNextInAccessOrder(candidate)
-			}
-			c.evictEntry(evict)
-		}
-	}
-}
-
-func (c *Cache) GetPreviousInAccessOrder(nod *node.Node) *node.Node {
-	if nod.IsBelongsToWindow() {
-		return c.windowQ.GetNextNodeBy(nod)
-	} else if nod.IsBelongsToProbation() {
-		return c.probationQ.GetNextNodeBy(nod)
-	}
-	return c.protectedQ.GetNextNodeBy(nod)
-}
-func (c *Cache) GetNextInAccessOrder(nod *node.Node) *node.Node {
-	if nod.IsBelongsToWindow() {
-		return c.windowQ.GetPrevNodeBy(nod)
-	} else if nod.IsBelongsToProbation() {
-		return c.probationQ.GetPrevNodeBy(nod)
-	}
-	return c.protectedQ.GetPrevNodeBy(nod)
-}
-
 func (c *Cache) evictEntry(nod *node.Node) bool {
 	fmt.Println("=========执行evictEntry========")
 	//尝试根据给定的删除原因驱逐条目。由于当前只会根据容量驱逐，因此不设其他参数
@@ -497,4 +409,3 @@ func (c *Cache) demoteFromMainProtected() {
 		}
 	}
 }
-
