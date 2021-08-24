@@ -15,13 +15,13 @@ func TestNewWhichMinLengthEqual16(t *testing.T) {
 	assert := assert.New(t)
 	assert.Equal(4, newFSketch(-1).length)
 	assert.Equal(4, newFSketch(0).length)
-	assert.Equal(4, newFSketch(16).length)
-	assert.Equal(8, newFSketch(100).length)
-	assert.Equal(64, newFSketch(1000).length)
-	assert.Equal(1024, newFSketch(10000).length)
-	assert.Equal(8192, newFSketch(100000).length)
-	assert.Equal(65536, newFSketch(1000000).length)
-	assert.Equal(1048576, newFSketch(10000000).length)
+	assert.Equal(16, newFSketch(16).length)
+	assert.Equal(128, newFSketch(100).length)
+	assert.Equal( 1024, newFSketch(1000).length)
+	assert.Equal( 16384, newFSketch(10000).length)
+	assert.Equal(131072, newFSketch(100000).length)
+	assert.Equal(1048576, newFSketch(1000000).length)
+	assert.Equal(16777216, newFSketch(10000000).length)
 }
 
 func TestFrequnceIsZeroWhenNotExistKey(t *testing.T) {

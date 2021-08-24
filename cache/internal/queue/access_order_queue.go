@@ -15,50 +15,47 @@ var (
 // 顾名思义：AccessOrderQueue。里面封装了一个map和一个list
 // 注意：这个LinkedHashMap是能存放的数据容量取决于cap
 type AccessOrderQueue struct {
-	cap     int
 	queue   *list.List // doubly link queue
 	hashmap sync.Map   // map[[]byte]*list.Element
 	weight int
+	MaxWeight int
 }
 
-func New(cap int) *AccessOrderQueue {
+func New() *AccessOrderQueue {
 	return &AccessOrderQueue{
-		cap:     cap+1,
 		queue:   list.New(),
 		hashmap: sync.Map{},
 		weight:	0,
+		MaxWeight: 0,
 	}
 }
 func (q *AccessOrderQueue) Weight() int {
+	 w:=0
+	for e := q.queue.Front(); e != nil; e = e.Next() {
+		w+=e.Value.(*node.Node).Weight()
+	}
+	q.weight=w
 	return q.weight
 }
 func (q *AccessOrderQueue) SetWeiht(w int){
 	q.weight=w
 }
-func (q *AccessOrderQueue) IsFull() bool {
-	return q.Len() >= q.cap
-}
+//func (q *AccessOrderQueue) IsFull() bool {
+//	return q.Weight() >= q.cap
+//}
 
 func (q *AccessOrderQueue) IsEmpty() bool {
-	return q.Len() <= 0
+	return q.Weight() <= 0
 }
 
 // 使用的长度，即：里面有多少个元素
-func (q *AccessOrderQueue) Len() int {
-	return q.queue.Len()
-}
+//func (q *AccessOrderQueue) Len() int {
+//	return q.queue.Len()
+//}
 
-// 最大容量
-func (q *AccessOrderQueue) Capacity() int {
-	return q.cap
-}
 
-// 重新分配最大容量
-func (q *AccessOrderQueue) ReCapacity(cap int) {
-	if q.cap < cap { // 当前容量比目标容量小，才需要重新分配
-		q.cap = cap
-	}
-}
+
+
 
 func (q *AccessOrderQueue) Contains(pNode *node.Node) bool {
 	_, ok := q.hashmap.Load(pNode.Key())
@@ -96,11 +93,7 @@ func (q *AccessOrderQueue) Push(pNode *node.Node) {
 	if q.Contains(pNode) { // 存在，则找到queue的位置，并且挪动到tail
 		pElement := q.GetQueueElementBy(pNode)
 		q.queue.MoveToBack(pElement)
-	} else if !q.IsFull() { // 不存在，且空间没有满
-		pElement := q.queue.PushBack(pNode)
-		q.hashmap.Store(pNode.Key(), pElement)
 	} else { // 不存在，空间也满了
-		q.Pop()
 		pElement := q.queue.PushBack(pNode)
 		q.hashmap.Store(pNode.Key(), pElement)
 	}

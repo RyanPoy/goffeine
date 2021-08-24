@@ -6,49 +6,45 @@ import (
 	"testing"
 )
 
-func newAccessOrderQueue(c int) *AccessOrderQueue {
-	return New(c)
+func newAccessOrderQueue() *AccessOrderQueue {
+	return New()
 }
 
 func TestInitial(t *testing.T) {
 	assert := assert.New(t)
-	q := newAccessOrderQueue(10)
-	assert.Equal(0, q.Len())
-	assert.Equal(10, q.Capacity())
+	q := newAccessOrderQueue()
+	assert.Equal(0, q.Weight())
 }
 
 func TestAddOnce(t *testing.T) {
 	assert := assert.New(t)
-	q := newAccessOrderQueue(10)
+	q := newAccessOrderQueue()
 	q.Push(node.New("id_123", 123))
-	assert.Equal(1, q.Len())
-	assert.Equal(10, q.Capacity())
+	assert.Equal(1, q.Weight())
 }
 
 func TestAddTwice(t *testing.T) {
 	assert := assert.New(t)
-	q := newAccessOrderQueue(10)
+	q := newAccessOrderQueue()
 	q.Push(node.New("id_123", 123))
 	q.Push(node.New("id_123", 123))
 
-	assert.Equal(1, q.Len())
-	assert.Equal(10, q.Capacity())
+	assert.Equal(1, q.Weight())
 }
 
 func TestAddMany(t *testing.T) {
 	assert := assert.New(t)
-	q := newAccessOrderQueue(10)
+	q := newAccessOrderQueue()
 	q.Push(node.New("id_123", 123))
 	q.Push(node.New("id_123", 123))
 	q.Push(node.New("id_456", 456))
 	q.Push(node.New("id_789", 789))
-	assert.Equal(3, q.Len())
-	assert.Equal(10, q.Capacity())
+	assert.Equal(3, q.Weight())
 }
 
 func TestGetWhenNotExist(t *testing.T) {
 	assert := assert.New(t)
-	q := newAccessOrderQueue(10)
+	q := newAccessOrderQueue()
 	v, err := q.Pop()
 	assert.Equal(true, v == nil)
 	assert.Equal(EmptyError, err)
@@ -56,7 +52,7 @@ func TestGetWhenNotExist(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	assert := assert.New(t)
-	q := newAccessOrderQueue(10)
+	q := newAccessOrderQueue()
 	pNode := node.New("id_123", 123)
 	q.Push(pNode)
 	v, err := q.Pop()
@@ -64,50 +60,9 @@ func TestGet(t *testing.T) {
 	assert.Equal(nil, err)
 }
 
-func TestFull(t *testing.T) {
-	assert := assert.New(t)
-	q := New(3)
-	q.Push(node.New("id_123", 123))
-	q.Push(node.New("id_456", 456))
-	q.Push(node.New("id_789", 789))
-	assert.Equal(true, q.IsFull())
-}
-
-func TestAddWillBeEliminatedAutomaticWhenCapacityIsFull(t *testing.T) {
-	assert := assert.New(t)
-	q := New(3)
-
-	pNode1 := node.New("id_123", 123)
-	q.Push(pNode1)
-
-	pNode2 := node.New("id_456", 456)
-	q.Push(pNode2)
-
-	pNode3 := node.New("id_789", 789)
-	q.Push(pNode3)
-
-	pNode4 := node.New("id_abc", "abc")
-	q.Push(pNode4)
-
-	assert.Equal(true, q.IsFull())
-	assert.Equal(3, q.Len())
-
-	v, err := q.Pop()
-	assert.Equal(pNode2, v)
-
-	v, _ = q.Pop()
-	assert.Equal(pNode3, v)
-
-	v, _ = q.Pop()
-	assert.Equal(pNode4, v)
-
-	v, err = q.Pop()
-	assert.Equal(true, v == nil)
-	assert.Equal(EmptyError, err)
-}
 func TestAccessOrderQueue_Remove(t *testing.T) {
 	assert := assert.New(t)
-	q := New(3)
+	q := newAccessOrderQueue()
 	pNode1 := node.New("id_123", 123)
 	q.Push(pNode1)
 	pNode2 := node.New("id_456", 456)
@@ -119,7 +74,7 @@ func TestAccessOrderQueue_Remove(t *testing.T) {
 
 func TestAddWillBeEliminatedAutomaticWhenCapacityIsFull2(t *testing.T) {
 	assert := assert.New(t)
-	q := New(3)
+	q := newAccessOrderQueue()
 
 	pNode1 := node.New("id_123", 123)
 	q.Push(pNode1)
@@ -135,10 +90,12 @@ func TestAddWillBeEliminatedAutomaticWhenCapacityIsFull2(t *testing.T) {
 	pNode4 := node.New("id_abc", "abc")
 	q.Push(pNode4)
 
-	assert.Equal(true, q.IsFull())
-	assert.Equal(3, q.Len())
+	assert.Equal(4, q.Weight())
 
 	v, _ := q.Pop()
+	assert.Equal(pNode2, v)
+
+	v, _ = q.Pop()
 	assert.Equal(pNode3, v)
 
 	v, _ = q.Pop()
