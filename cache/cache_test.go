@@ -14,7 +14,7 @@ func TestInitial(t *testing.T) {
 	assert := assert.New(t)
 	cache := newCache(10)
 	assert.Equal(10, cache.maxWeight)
-	assert.Equal(0, cache.Weight())
+	assert.Equal(0, cache.Weight)
 }
 
 func TestCache_PutANDGET_two(t *testing.T) {
@@ -62,7 +62,7 @@ func TestCache_PutANDGET_bignum(t *testing.T) {
 	cache.Put("102", 102)                        //window中的101被驱逐，102放入window中
 	assert.Equal(true, cache.Get("101") == nil)  //101被驱逐
 	assert.Equal(false, cache.Get("102") == nil) //102存在
-	assert.Equal(100, cache.weight)              //检测是否是最大值
+	assert.Equal(100, cache.Weight)              //检测是否是最大值
 }
 func TestGetWhenHitInProtected(t *testing.T) {
 	cache := NewWith(10, 2, 4)
@@ -110,7 +110,7 @@ func TestGetWhenHitInProtected(t *testing.T) {
 	cache.Get("14")
 	cache.Put("15", 15)
 	//13（或2）被驱逐，14,15在window，3-4，11，2（或13）在probation，6-9在protected。
-	assert.Equal(10, cache.Weight())
+	assert.Equal(10, cache.Weight)
 	assert.Equal(true, cache.Get("13") == nil) //应该在多次实验中有的通过有的不通过才正确
 }
 
@@ -140,10 +140,10 @@ func TestCache_PutANDGETwithWeight_bignum(t *testing.T) {
 	cache.PutWithWeight("1", 1, 2)
 	cache.PutWithWeight("1", 2, 5)   //测验weight方法是否会重置weight，
 	cache.PutWithWeight("2", 1, 300) //测验当前权重是正确
-	assert.Equal(305, cache.Weight())
+	assert.Equal(305, cache.Weight)
 	cache.PutWithWeight("3", 3, 600) //
 	//cache.PutWithWeight("4",4,800)//检验多驱逐是否成功
-	//assert.Equal(80,cache.Weight())//此处不是bug是程序逻辑，是由于window太小导致的，需要动态调整窗口大小去优化
+	//assert.Equal(80,cache.Weight)//此处不是bug是程序逻辑，是由于window太小导致的，需要动态调整窗口大小去优化
 	cache.PutWithWeight("5", 3, 100) //当已经满时，大于window大小的weight一律放不进。
-	//	assert.Equal(80,cache.Weight())
+	//	assert.Equal(80,cache.Weight)
 }

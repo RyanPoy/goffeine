@@ -9,7 +9,7 @@ package cache
 
 // * 更新一个node
 // hashmap.put(node)
-// node.update weight and value
+// node.update Weight and value
 // if node is belongs to windowq:
 //   如果node的权重大于windowq的最大权重，移动到windowq的first，否则移动到windowq的last
 //   如果window的当前权重大于window最大权重，挪动window的first，放到probation的last，直到window的当前权重小于等于window的最大权重。到此：window的当前权重已经收缩到合理值了。

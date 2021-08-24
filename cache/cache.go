@@ -9,20 +9,6 @@ import (
 	"sync"
 )
 
-func percentMainOf(c *Cache) float64 {
-	if c != nil {
-		return float64(c.wMaxWeight * 1.0 / c.maxWeight)
-	}
-	return 0.99
-}
-
-func percentMainProtectedOf(c *Cache) float64 {
-	if c != nil {
-		return float64(c.ptMaxWeight * 1.0 / c.maxWeight)
-	}
-	return 0.8
-}
-
 /*
 1.队列内部设置为无界，不要在插入元素时对队列的长度做判断
 2.hashmap在cache中也保留一份
@@ -35,36 +21,17 @@ type Cache struct {
 	probationQ  *queue.AccessOrderQueue
 	protectedQ  *queue.AccessOrderQueue
 	hashmap     sync.Map
-	weight      int //集合当前权重，容量
+	Weight      int //集合当前权重，容量
 	wMaxWeight  int //window大小
 	ptMaxWeight int // protectedQ size
 }
 
 func New(maxWeight int) Cache {
 	//没有异常如何判断是否成功？如果cap<0？？
-	percentMain := percentMainOf(nil)
-	percentMainProtected := percentMainProtectedOf(nil)
-
+	percentMain, percentMainProtected := 0.99, 0.8
 	wMaxWeight := maxWeight - int(float64(maxWeight)*percentMain)
 	ptMaxWeight := int(percentMainProtected * float64(maxWeight-wMaxWeight))
-	pbMaxWeight := maxWeight - wMaxWeight - ptMaxWeight
-
-	fmt.Printf("======初始化大小：window：%d，probatio：%d，protected：%d\n", wMaxWeight, pbMaxWeight, ptMaxWeight)
-	var cache = Cache{
-		maxWeight:   maxWeight,
-		sketch:      sketch.New(maxWeight),
-		windowQ:     queue.New(),
-		probationQ:  queue.New(),
-		protectedQ:  queue.New(),
-		hashmap:     sync.Map{},
-		weight:      0,
-		wMaxWeight:  wMaxWeight,
-		ptMaxWeight: ptMaxWeight,
-	}
-	cache.windowQ.MaxWeight = wMaxWeight
-	cache.probationQ.MaxWeight = pbMaxWeight
-	cache.protectedQ.MaxWeight = ptMaxWeight
-	return cache
+	return NewWith(maxWeight, wMaxWeight, ptMaxWeight)
 }
 
 func NewWith(maxWeight, wMaxWeight, ptMaxWeight int) Cache {
@@ -76,7 +43,7 @@ func NewWith(maxWeight, wMaxWeight, ptMaxWeight int) Cache {
 		probationQ:  queue.New(),
 		protectedQ:  queue.New(),
 		hashmap:     sync.Map{},
-		weight:      0,
+		Weight:      0,
 		wMaxWeight:  wMaxWeight,
 		ptMaxWeight: ptMaxWeight,
 	}
@@ -86,8 +53,12 @@ func NewWith(maxWeight, wMaxWeight, ptMaxWeight int) Cache {
 	return cache
 }
 
-func (c *Cache) Weight() int {
-	return c.weight
+func (c *Cache) percentMainOf() float64 {
+	return float64(c.wMaxWeight * 1.0 / c.maxWeight)
+}
+
+func (c *Cache) percentMainProtectedOf() float64 {
+	return float64(c.ptMaxWeight * 1.0 / c.maxWeight)
 }
 
 // 往cache里面添加内容
@@ -101,25 +72,25 @@ func (c *Cache) PutWithWeight(key string, value interface{}, weight int) {
 	n, ok := c.hashmap.Load(key)
 	if !ok {
 		//不存在则新建node放入map
-		newnode := node.New(key, value)
-		newnode.Weight = weight
-		c.weight += weight
-		c.hashmap.Store(key, newnode)
-		//fmt.Println("添加node",newnode)
+		newNode := node.New(key, value)
+		newNode.Weight = weight
+		c.Weight += weight
+		c.hashmap.Store(key, newNode)
+		//fmt.Println("添加node",newNode)
 		//写操作后的维护，调整队列或驱逐，后期可改为异步
-		c.afterWrite(newnode)
+		c.afterWrite(newNode)
 	} else {
-		oldnode := n.(*node.Node)
-		c.weight -= oldnode.Weight
+		oldNode := n.(*node.Node)
+		c.Weight -= oldNode.Weight
 		//存在则覆盖nodevalue值
-		//fmt.Println("old值：",oldnode.Value())
-		oldnode.Value = value
-		oldnode.Weight = weight
-		c.weight += weight
+		//fmt.Println("old值：",oldNode.Value())
+		oldNode.Value = value
+		oldNode.Weight = weight
+		c.Weight += weight
 
-		//fmt.Println("new值：",oldnode.Value())
+		//fmt.Println("new值：",oldNode.Value())
 		//由于没有新值插入，维护与读操作后的维护相同，后期可改为异步
-		c.afterRead(oldnode)
+		c.afterRead(oldNode)
 	} //判断权重是否上限
 }
 
@@ -256,7 +227,7 @@ func (c *Cache) evictFromMain(candidates int) {
 	//若 5 <= FrequencyCandidate < FrequencyVictim:
 	// 随机淘汰 victim 或者  candidte
 	//若 FrequencyCandidate > FrequencyVictim 则淘汰v
-	for c.weight > c.maxWeight {
+	for c.Weight > c.maxWeight {
 		victim, ok1 := c.getVictim()
 		candidate, ok2 := c.getCandidate(candidates <= 0)
 		if !ok1 && !ok2 {
@@ -300,7 +271,7 @@ func (c *Cache) evictEntry(nod *node.Node) bool {
 	//移除hashmap里的元素
 	fmt.Println("=========执行evictEntry:", nod.Key)
 	c.hashmap.Delete(nod.Key)
-	c.weight -= nod.Weight
+	c.Weight -= nod.Weight
 	if nod.IsBelongsToWindow() {
 		c.windowQ.Remove(nod)
 	} else if nod.IsBelongsToProbation() {
