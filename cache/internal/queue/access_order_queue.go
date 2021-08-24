@@ -138,30 +138,30 @@ func (q *AccessOrderQueue) MoveToFront(pNode *node.Node){
 // 删除内容
 // 永远删除head
 // @param: value 要添加的内容
-func (q *AccessOrderQueue) Pop() (*node.Node, error) {
+func (q *AccessOrderQueue) Pop() (*node.Node, bool) {
 	if q.IsEmpty() {
-		return nil, EmptyError
+		return nil, false
 	}
 	pElement := q.queue.Front()
 	v := q.queue.Remove(pElement)
 	q.hashmap.Delete(pElement.Value)
-	return v.(*node.Node), nil
+	return v.(*node.Node), true
 }
 
-func (q *AccessOrderQueue) First() (*node.Node, error) {
+func (q *AccessOrderQueue) First() (*node.Node, bool) {
 	if q.IsEmpty() {
-		return nil, EmptyError
+		return nil, false
 	}
 	pElement := q.queue.Front()
-	return pElement.Value.(*node.Node), nil
+	return pElement.Value.(*node.Node), true
 }
 
-func (q *AccessOrderQueue) Last() (*node.Node, error) {
+func (q *AccessOrderQueue) Last() (*node.Node, bool) {
 	if q.IsEmpty() {
-		return nil, EmptyError
+		return nil, false
 	}
 	pElement := q.queue.Back()
-	return pElement.Value.(*node.Node), nil
+	return pElement.Value.(*node.Node), true
 }
 
 func (q *AccessOrderQueue) RemoveFirst() {

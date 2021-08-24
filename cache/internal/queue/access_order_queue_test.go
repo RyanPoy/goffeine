@@ -45,9 +45,9 @@ func TestAddMany(t *testing.T) {
 func TestGetWhenNotExist(t *testing.T) {
 	assert := assert.New(t)
 	q := newAccessOrderQueue()
-	v, err := q.Pop()
+	v, ok := q.Pop()
 	assert.Equal(true, v == nil)
-	assert.Equal(EmptyError, err)
+	assert.Equal(false, ok)
 }
 
 func TestGet(t *testing.T) {
@@ -55,9 +55,9 @@ func TestGet(t *testing.T) {
 	q := newAccessOrderQueue()
 	pNode := node.New("id_123", 123)
 	q.Push(pNode)
-	v, err := q.Pop()
+	v, ok := q.Pop()
 	assert.Equal(pNode, v)
-	assert.Equal(nil, err)
+	assert.Equal(true, ok)
 }
 
 func TestAccessOrderQueue_Remove(t *testing.T) {

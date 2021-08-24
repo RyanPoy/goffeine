@@ -259,18 +259,18 @@ func (c *Cache) evictFromWindow() int {
 	return candidates
 }
 
-func (c *Cache) getVictim() (*node.Node, error) {
-	nod, err := c.probationQ.First()
-	if err != nil {
-		nod, err = c.protectedQ.First()
+func (c *Cache) getVictim() (*node.Node, bool) {
+	nod, ok := c.probationQ.First()
+	if !ok {
+		nod, ok = c.protectedQ.First()
 	}
-	if err != nil {
-		nod, err = c.windowQ.First()
+	if !ok {
+		nod, ok = c.windowQ.First()
 	}
-	return nod, err
+	return nod, ok
 }
 
-func (c *Cache) getCandidate(fromWindow bool) (*node.Node, error) {
+func (c *Cache) getCandidate(fromWindow bool) (*node.Node, bool) {
 	if fromWindow {
 		return c.windowQ.First()
 	}
@@ -292,21 +292,21 @@ func (c *Cache) evictFromMain(candidates int) {
 	// 随机淘汰 victim 或者  candidte
 	//若 FrequencyCandidate > FrequencyVictim 则淘汰v
 	for c.weight > c.cap {
-		victim, err1 := c.getVictim()
-		candidate, err2 := c.getCandidate(candidates <= 0)
-		if err1 != nil && err2 != nil {
+		victim, ok1 := c.getVictim()
+		candidate, ok2 := c.getCandidate(candidates <= 0)
+		if !ok1 && !ok2 {
 			return
 		}
-		if err1 == nil && err2 != nil { // victim有，candidate没有
+		if ok1 && !ok2 { // victim有，candidate没有
 			c.evictEntry(victim)
 			continue
 		}
-		if err1 != nil && err2 == nil { // victim没有，candidate有
+		if !ok1 && ok2 { // victim没有，candidate有
 			c.evictEntry(candidate)
 			candidates--
 			continue
 		}
-		// 执行到这里，则：err1 == nil && err2 == nil，表示 victim 和 candidate都有
+		// 执行到这里，则：ok1 && ok2 ，表示 victim 和 candidate都有
 		if victim == candidate {
 			c.evictEntry(candidate)
 			candidates--
@@ -401,8 +401,8 @@ func (c *Cache) reorderProbation(nod *node.Node) { //从probation队列中移动
 
 func (c *Cache) demoteFromMainProtected() {
 	for c.protectedQ.Weight() > c.ptsize {
-		nod, err := c.protectedQ.First()
-		if err == nil {
+		nod, ok := c.protectedQ.First()
+		if ok {
 			c.protectedQ.Remove(nod)
 			c.probationQ.Push(nod)
 			nod.InProbation()
