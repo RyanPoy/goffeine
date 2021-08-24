@@ -57,6 +57,12 @@ func (c *LocalCache) put(pNewNode *node.Node) {
 	}
 }
 
+func (c *LocalCache) remove(queue *queue.AccessOrderQueue, pNode *node.Node) {
+	queue.Remove(pNode)
+	c.hashmap.Delete(pNode.Key)
+	c.Weight -= pNode.Weight
+}
+
 // 从protation queue里面驱逐节点，使整体cache的当前权重收缩到最大权重以内。具体策略：
 // 获得probation的 victim(first) 和 candidate(last) ，
 // 按照FrequencyCandidate 和 FrequencyVictim 和 随机数 一起来判断淘汰 victim 或者 candidate
@@ -68,25 +74,17 @@ func (c *LocalCache) evictFromProbation() {
 		}
 		candidate, ok := c.probationQ.Last()
 		if !ok || victim == candidate { // 到这里没有得到cacidate，但是有victim
-			c.probationQ.Remove(victim)
-			c.hashmap.Delete(victim.Key)
-			c.Weight -= victim.Weight
+			c.remove(c.probationQ, victim)
 			return
 		}
 
 		freqV, freqC := c.sketch.Frequency(victim), c.sketch.Frequency(candidate)
 		if freqC <= 5 {
-			c.probationQ.Remove(candidate)
-			c.hashmap.Delete(candidate.Key)
-			c.Weight -= candidate.Weight
+			c.remove(c.probationQ, candidate)
 		} else if freqC > freqV {
-			c.probationQ.Remove(victim)
-			c.hashmap.Delete(victim.Key)
-			c.Weight -= victim.Weight
+			c.remove(c.probationQ, victim)
 		} else if rand.Int()&127 == 0 {
-			c.probationQ.Remove(victim)
-			c.hashmap.Delete(victim.Key)
-			c.Weight -= victim.Weight
+			c.remove(c.probationQ, victim)
 		}
 	}
 }
