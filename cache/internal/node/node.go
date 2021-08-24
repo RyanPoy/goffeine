@@ -31,9 +31,11 @@ func New(key string, value interface{}) *Node {
 func (n *Node) InWindow() {
 	n.position = WINDOW
 }
+
 func (n *Node) InProbation() {
 	n.position = PROBATION
 }
+
 func (n *Node) InProtected() {
 	n.position = PROTECTED
 }

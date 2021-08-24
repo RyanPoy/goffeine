@@ -11,14 +11,14 @@ import (
 
 func percentMainOf(c *Cache) float64 {
 	if c != nil {
-		return float64(c.wsize * 1.0 / c.cap)
+		return float64(c.wMaxWeight * 1.0 / c.maxWeight)
 	}
 	return 0.99
 }
 
 func percentMainProtectedOf(c *Cache) float64 {
 	if c != nil {
-		return float64(c.ptsize * 1.0 / c.cap)
+		return float64(c.ptMaxWeight * 1.0 / c.maxWeight)
 	}
 	return 0.8
 }
@@ -29,37 +29,37 @@ func percentMainProtectedOf(c *Cache) float64 {
 3.frequencysketch 的大小设置为元素总大小n
 */
 type Cache struct {
-	cap        int
-	sketch     *sketch.FrequencySketch
-	windowQ    *queue.AccessOrderQueue
-	probationQ *queue.AccessOrderQueue
-	protectedQ *queue.AccessOrderQueue
-	hashmap    sync.Map
-	weight     int //集合当前权重，容量
-	wsize      int //window大小
-	ptsize     int // protectedQ size
+	maxWeight   int
+	sketch      *sketch.FrequencySketch
+	windowQ     *queue.AccessOrderQueue
+	probationQ  *queue.AccessOrderQueue
+	protectedQ  *queue.AccessOrderQueue
+	hashmap     sync.Map
+	weight      int //集合当前权重，容量
+	wMaxWeight  int //window大小
+	ptMaxWeight int // protectedQ size
 }
 
-func New(cap int) Cache {
+func New(maxWeight int) Cache {
 	//没有异常如何判断是否成功？如果cap<0？？
 	percentMain := percentMainOf(nil)
 	percentMainProtected := percentMainProtectedOf(nil)
 
-	wsize := cap - int(float64(cap)*percentMain)
-	ptsize := int(percentMainProtected * float64(cap-wsize))
-	pbsize := cap - wsize - ptsize
+	wsize := maxWeight - int(float64(maxWeight)*percentMain)
+	ptsize := int(percentMainProtected * float64(maxWeight-wsize))
+	pbsize := maxWeight - wsize - ptsize
 
 	fmt.Printf("======初始化大小：window：%d，probatio：%d，protected：%d\n", wsize, pbsize, ptsize)
 	var cache = Cache{
-		cap:        cap,
-		sketch:     sketch.New(cap),
-		windowQ:    queue.New(),
-		probationQ: queue.New(),
-		protectedQ: queue.New(),
-		hashmap:    sync.Map{},
-		weight:     0,
-		wsize:      wsize,
-		ptsize:     ptsize,
+		maxWeight:   maxWeight,
+		sketch:      sketch.New(maxWeight),
+		windowQ:     queue.New(),
+		probationQ:  queue.New(),
+		protectedQ:  queue.New(),
+		hashmap:     sync.Map{},
+		weight:      0,
+		wMaxWeight:  wsize,
+		ptMaxWeight: ptsize,
 	}
 	cache.windowQ.MaxWeight = wsize
 	cache.probationQ.MaxWeight = pbsize
@@ -67,27 +67,27 @@ func New(cap int) Cache {
 	return cache
 }
 
-func NewWith(cap, wsize, ptsize int) Cache {
-	fmt.Printf("======初始化大小：window：%d，protected：%d\n", wsize, ptsize)
+func NewWith(maxWeight, wMaxWeight, ptMaxWeight int) Cache {
+	fmt.Printf("======初始化大小：window：%d，protected：%d\n", wMaxWeight, ptMaxWeight)
 	var cache = Cache{
-		cap:        cap,
-		sketch:     sketch.New(cap),
-		windowQ:    queue.New(),
-		probationQ: queue.New(),
-		protectedQ: queue.New(),
-		hashmap:    sync.Map{},
-		weight:     0,
-		wsize:      wsize,
-		ptsize:     ptsize,
+		maxWeight:   maxWeight,
+		sketch:      sketch.New(maxWeight),
+		windowQ:     queue.New(),
+		probationQ:  queue.New(),
+		protectedQ:  queue.New(),
+		hashmap:     sync.Map{},
+		weight:      0,
+		wMaxWeight:  wMaxWeight,
+		ptMaxWeight: ptMaxWeight,
 	}
-	cache.windowQ.MaxWeight = wsize
-	cache.probationQ.MaxWeight = cap - wsize - ptsize
-	cache.protectedQ.MaxWeight = ptsize
+	cache.windowQ.MaxWeight = wMaxWeight
+	cache.probationQ.MaxWeight = maxWeight- wMaxWeight - ptMaxWeight
+	cache.protectedQ.MaxWeight = ptMaxWeight
 	return cache
 }
 
 func (c *Cache) Capacity() int {
-	return c.cap
+	return c.maxWeight
 }
 
 func (c *Cache) Weight() int {
@@ -196,7 +196,7 @@ func (c *Cache) maintenance() {
 func (c *Cache) updateTask(nod *node.Node) {
 	//执行更新元素位置工作
 	if nod.IsBelongsToWindow() {
-		if c.wsize >= nod.Weight { //当前node值小于weight最大值//后期1改为node权重，代表node不超过window最大大小
+		if c.wMaxWeight >= nod.Weight { //当前node值小于weight最大值//后期1改为node权重，代表node不超过window最大大小
 			c.onAccess(nod)
 		} else if c.windowQ.Contains(nod) { //说明超过最大值，移到队首等待被清除
 			c.windowQ.MoveToFront(nod)
@@ -227,7 +227,7 @@ func (c *Cache) addTask(nod *node.Node) {
 	//过期等策略
 	//获取锁执行写操作
 	//当前只用判断大小并插入即可
-	if c.wsize >= nod.Weight { //说明没有超过最大值，移到队尾部
+	if c.wMaxWeight >= nod.Weight { //说明没有超过最大值，移到队尾部
 		c.windowQ.Push(nod)
 		c.onAccess(nod)
 	} else { //代表node超过window最大大小
@@ -242,7 +242,7 @@ func (c *Cache) evictEntries() {
 
 func (c *Cache) evictFromWindow() int {
 	var candidates = 0
-	for c.windowQ.Weight() > c.wsize { //后期改为权重大于最大权重
+	for c.windowQ.Weight() > c.wMaxWeight { //后期改为权重大于最大权重
 		var nod, _ = c.windowQ.First()
 
 		if nod == nil {
@@ -283,13 +283,14 @@ func (c *Cache) getQueueByNode(nod *node.Node) *queue.AccessOrderQueue {
 	}
 	return c.protectedQ
 }
+
 func (c *Cache) evictFromMain(candidates int) {
 	// 首先默认选择probation的队头和队尾作为victim和candidate，参与淘汰；
 	//若 FrequencyCandidate < 5，则淘汰c；
 	//若 5 <= FrequencyCandidate < FrequencyVictim:
 	// 随机淘汰 victim 或者  candidte
 	//若 FrequencyCandidate > FrequencyVictim 则淘汰v
-	for c.weight > c.cap {
+	for c.weight > c.maxWeight {
 		victim, ok1 := c.getVictim()
 		candidate, ok2 := c.getCandidate(candidates <= 0)
 		if !ok1 && !ok2 {
@@ -310,7 +311,7 @@ func (c *Cache) evictFromMain(candidates int) {
 			candidates--
 			continue
 		}
-		if candidate.Weight > c.cap {
+		if candidate.Weight > c.maxWeight {
 			c.evictEntry(candidate)
 			candidates--
 			continue
@@ -347,6 +348,7 @@ func (c *Cache) evictEntry(nod *node.Node) bool {
 
 func (c *Cache) makeDead(nod *node.Node) { //加锁完成，修改权重
 }
+
 func (c *Cache) admit(candidate *node.Node, victim *node.Node) bool { //window到probation晋升
 	victimFreq := c.sketch.Frequency(victim)
 	candidateFreq := c.sketch.Frequency(candidate)
@@ -382,6 +384,7 @@ func (c *Cache) reorder(queue *queue.AccessOrderQueue, nod *node.Node) { //将�
 		queue.MoveToBack(nod)
 	}
 }
+
 func (c *Cache) reorderProbation(nod *node.Node) { //从probation队列中移动元素
 	if !c.probationQ.Contains(nod) {
 		return
@@ -398,7 +401,7 @@ func (c *Cache) reorderProbation(nod *node.Node) { //从probation队列中移动
 }
 
 func (c *Cache) demoteFromMainProtected() {
-	for c.protectedQ.Weight() > c.ptsize {
+	for c.protectedQ.Weight() > c.ptMaxWeight {
 		nod, ok := c.protectedQ.First()
 		if ok {
 			c.protectedQ.Remove(nod)
