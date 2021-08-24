@@ -13,7 +13,7 @@ func newCache(n int) Cache {
 func TestInitial(t *testing.T) {
 	assert := assert.New(t)
 	cache := newCache(10)
-	assert.Equal(10, cache.Capacity())
+	assert.Equal(10, cache.maxWeight)
 	assert.Equal(0, cache.Weight())
 }
 

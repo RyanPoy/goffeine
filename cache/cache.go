@@ -45,11 +45,11 @@ func New(maxWeight int) Cache {
 	percentMain := percentMainOf(nil)
 	percentMainProtected := percentMainProtectedOf(nil)
 
-	wsize := maxWeight - int(float64(maxWeight)*percentMain)
-	ptsize := int(percentMainProtected * float64(maxWeight-wsize))
-	pbsize := maxWeight - wsize - ptsize
+	wMaxWeight := maxWeight - int(float64(maxWeight)*percentMain)
+	ptMaxWeight := int(percentMainProtected * float64(maxWeight-wMaxWeight))
+	pbMaxWeight := maxWeight - wMaxWeight - ptMaxWeight
 
-	fmt.Printf("======初始化大小：window：%d，probatio：%d，protected：%d\n", wsize, pbsize, ptsize)
+	fmt.Printf("======初始化大小：window：%d，probatio：%d，protected：%d\n", wMaxWeight, pbMaxWeight, ptMaxWeight)
 	var cache = Cache{
 		maxWeight:   maxWeight,
 		sketch:      sketch.New(maxWeight),
@@ -58,12 +58,12 @@ func New(maxWeight int) Cache {
 		protectedQ:  queue.New(),
 		hashmap:     sync.Map{},
 		weight:      0,
-		wMaxWeight:  wsize,
-		ptMaxWeight: ptsize,
+		wMaxWeight:  wMaxWeight,
+		ptMaxWeight: ptMaxWeight,
 	}
-	cache.windowQ.MaxWeight = wsize
-	cache.probationQ.MaxWeight = pbsize
-	cache.protectedQ.MaxWeight = ptsize
+	cache.windowQ.MaxWeight = wMaxWeight
+	cache.probationQ.MaxWeight = pbMaxWeight
+	cache.protectedQ.MaxWeight = ptMaxWeight
 	return cache
 }
 
@@ -81,13 +81,9 @@ func NewWith(maxWeight, wMaxWeight, ptMaxWeight int) Cache {
 		ptMaxWeight: ptMaxWeight,
 	}
 	cache.windowQ.MaxWeight = wMaxWeight
-	cache.probationQ.MaxWeight = maxWeight- wMaxWeight - ptMaxWeight
+	cache.probationQ.MaxWeight = maxWeight - wMaxWeight - ptMaxWeight
 	cache.protectedQ.MaxWeight = ptMaxWeight
 	return cache
-}
-
-func (c *Cache) Capacity() int {
-	return c.maxWeight
 }
 
 func (c *Cache) Weight() int {
@@ -96,34 +92,11 @@ func (c *Cache) Weight() int {
 
 // 往cache里面添加内容
 func (c *Cache) Put(key string, value interface{}) {
-	fmt.Println("========执行put方法=======")
-	//增加频率
-	//c.sketch.Increment( []byte(key))
-	//获取map的key，看key是否已经存在
-	n, ok := c.hashmap.Load(key)
-	if !ok {
-		//不存在则新建node放入map
-		newnode := node.New(key, value)
-		c.weight += newnode.Weight
-		c.hashmap.Store(key, newnode)
-		//fmt.Println("添加node",newnode)
-		//写操作后的维护，调整队列或驱逐，后期可改为异步
-		c.afterWrite(newnode)
-	} else {
-		oldnode := n.(*node.Node)
-		//存在则覆盖nodevalue值
-		//fmt.Println("old值：",oldnode.Value())
-		oldnode.Value = value
-		//fmt.Println("new值：",oldnode.Value())
-		//由于没有新值插入，维护与读操作后的维护相同，后期可改为异步
-		c.afterRead(oldnode)
-	} //判断权重是否上限
+	c.PutWithWeight(key, value, 1) // node的默认权重为1
 }
 
 func (c *Cache) PutWithWeight(key string, value interface{}, weight int) {
 	fmt.Println("========执行put方法=======")
-	//增加频率
-	//c.sketch.Increment( []byte(key))
 	//获取map的key，看key是否已经存在
 	n, ok := c.hashmap.Load(key)
 	if !ok {
@@ -153,27 +126,18 @@ func (c *Cache) PutWithWeight(key string, value interface{}, weight int) {
 func (c *Cache) GetWithWeight(key string) (interface{}, int) {
 	fmt.Println("========执行Get方法=======")
 	n, ok := c.hashmap.Load(key)
-	if ok { // 找到了
-		oldnode := n.(*node.Node)
-		//由于没有新值插入，维护与读操作后的维护相同，后期可改为异步
-		c.afterRead(oldnode)
-		return oldnode.Value, oldnode.Weight
-	} else {
+	if !ok {
 		return nil, 0
 	}
+	pNode := n.(*node.Node)
+	//由于没有新值插入，维护与读操作后的维护相同，后期可改为异步
+	c.afterRead(pNode)
+	return pNode.Value, pNode.Weight
 }
 
 func (c *Cache) Get(key string) interface{} {
-	fmt.Println("========执行Get方法=======")
-	n, ok := c.hashmap.Load(key)
-	if !ok {
-		return nil
-	}
-
-	oldnode := n.(*node.Node)
-	//由于没有新值插入，维护与读操作后的维护相同，后期可改为异步
-	c.afterRead(oldnode)
-	return oldnode.Value
+	value, _ := c.GetWithWeight(key)
+	return value
 }
 
 func (c *Cache) afterWrite(newnode *node.Node) {
@@ -181,6 +145,7 @@ func (c *Cache) afterWrite(newnode *node.Node) {
 	c.addTask(newnode) //将node添加到三个队列中的一个
 	c.maintenance()
 }
+
 func (c *Cache) afterRead(node *node.Node) {
 	//后期增加命中次数统计等操作时可增加此函数功能，当前主要是执行移动操作
 	c.updateTask(node) //访问后更新元素
@@ -193,6 +158,7 @@ func (c *Cache) maintenance() {
 	c.evictEntries()
 	c.demoteFromMainProtected() //收缩protected大小
 }
+
 func (c *Cache) updateTask(nod *node.Node) {
 	//执行更新元素位置工作
 	if nod.IsBelongsToWindow() {
