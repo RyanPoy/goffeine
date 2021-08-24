@@ -26,12 +26,6 @@ type Cache struct {
 	percentMainProtected float64 //protected比例
 }
 
-const(
-	WINDOW int =0
-	PROBATION int = 1
-	PROTECTED int =2
-)
-
 func New(cap int) Cache {
 	//没有异常如何判断是否成功？如果cap<0？？
 	percentMain := 0.99
@@ -171,23 +165,26 @@ func (c *Cache) maintenance() {
 }
 func (c *Cache) updateTask(nod *node.Node) {
 	//执行更新元素位置工作
-	position := nod.Position()
-	switch position {
-	case WINDOW: //处于window
-		if c.wsize >=nod.Weight() { //当前node值小于weight最大值//后期1改为node权重，代表node不超过window最大大小
+	//position := nod.Position()
+	//switch position {
+	//case WINDOW: //处于window
+	if (nod.IsBelongsToWindow()) {
+		if c.wsize >= nod.Weight() { //当前node值小于weight最大值//后期1改为node权重，代表node不超过window最大大小
 			c.onAccess(nod)
 		} else if c.windowQ.Contains(nod) { //说明超过最大值，移到队首等待被清除
 			c.windowQ.MoveToFront(nod)
 		}
-	case PROBATION: //处于probation
+	} else if (nod.IsBelongsToProbation()) {
+		//case PROBATION: //处于probation
 		if c.probationQ.MaxWeight >= nod.Weight() { //后期1改为node权重，代表node不超过probation最大大小
 			c.onAccess(nod)
-		} else   { //说明超过最大值，移除然后放入window队头等待驱逐比较
+		} else { //说明超过最大值，移除然后放入window队头等待驱逐比较
 			c.probationQ.Remove(nod)
 			c.windowQ.AddFirst(nod)
 			//修改window,probation权重，此时不需要
 		}
-	case PROTECTED: //处于protected状态
+	} else {
+	//case PROTECTED: //处于protected状态
 		if c.protectedQ.MaxWeight >= nod.Weight() { //后期1改为node权重，代表node不超过probation最大大小
 			c.onAccess(nod)
 		} else { //说明超过最大值，移除然后放入window队头等待驱逐比较
@@ -226,7 +223,7 @@ func (c *Cache) evictFromWindow() int {
 		if nod == nil {
 			break
 		}
-		nod.SetPosition(PROBATION)
+		nod.InProbation()
 		c.windowQ.Remove(nod)
 		c.probationQ.Push(nod)
 		candidates++
@@ -235,7 +232,7 @@ func (c *Cache) evictFromWindow() int {
 	return candidates
 }
 func (c *Cache) evictFromMain(candidates int) {
-	victimQueue := PROBATION //probation 受害者由probation选出
+	victimQueue := node.PROBATION //probation 受害者由probation选出
 	victim , _ := c.probationQ.First()
 	candidate, _ := c.probationQ.Last()
 	for c.weight > c.cap {
@@ -245,11 +242,11 @@ func (c *Cache) evictFromMain(candidates int) {
 		}
 		if candidate == nil && victim == nil { //如果从window和probation里都没有元素，就从protected里面取
 			fmt.Println("========执行evictFromMain：candidate == nil && victim == nil=========")
-			if victimQueue == PROBATION {
+			if victimQueue == node.PROBATION {
 				victim, _ = c.protectedQ.First()
-				victimQueue = PROTECTED //protected
+				victimQueue = node.PROTECTED //protected
 				continue
-			} else if victimQueue == PROTECTED {
+			} else if victimQueue == node.PROTECTED {
 				victim, _ = c.windowQ.First()
 				victimQueue = 0 //window
 				continue
@@ -305,26 +302,20 @@ func (c *Cache) evictFromMain(candidates int) {
 }
 
 func (c *Cache)GetPreviousInAccessOrder(nod *node.Node) *node.Node{
-	switch nod.Position() {
-	case WINDOW:
+	if nod.IsBelongsToWindow() {
 		return c.windowQ.GetNextNodeBy(nod)
-	case PROBATION:
+	} else if nod.IsBelongsToProbation() {
 		return c.probationQ.GetNextNodeBy(nod)
-	case PROTECTED:
-		return c.protectedQ.GetNextNodeBy(nod)
 	}
-	return nil
+	return c.protectedQ.GetNextNodeBy(nod)
 }
 func (c *Cache)GetNextInAccessOrder(nod *node.Node) *node.Node{
-	switch nod.Position() {
-	case WINDOW:
+	if nod.IsBelongsToWindow() {
 		return c.windowQ.GetPrevNodeBy(nod)
-	case PROBATION:
+	} else if nod.IsBelongsToProbation() {
 		return c.probationQ.GetPrevNodeBy(nod)
-	case PROTECTED:
-		return c.protectedQ.GetPrevNodeBy(nod)
 	}
-	return nil
+	return c.protectedQ.GetPrevNodeBy(nod)
 }
 
 func (c *Cache) evictEntry(nod *node.Node) bool {
@@ -336,9 +327,9 @@ func (c *Cache) evictEntry(nod *node.Node) bool {
 	fmt.Println("=========执行evictEntry:",nod.Key())
 	c.hashmap.Delete(nod.Key())
 	c.weight-=nod.Weight()
-	if nod.Position() == WINDOW {
+	if nod.IsBelongsToWindow() {
 		c.windowQ.Remove(nod)
-	} else if nod.Position() == PROBATION {
+	} else if nod.IsBelongsToProbation(){
 		c.probationQ.Remove(nod)
 	} else {
 		c.protectedQ.Remove(nod)
@@ -370,13 +361,11 @@ func (c *Cache) removalTask(nod *node.Node) {
 func (c *Cache) onAccess(nod *node.Node) {
 	//更新结点位置
 	c.sketch.Increment(nod) //增加访问频率
-	position := nod.Position()
-	switch position {
-	case WINDOW:
+	if nod.IsBelongsToWindow() {
 		c.reorder(c.windowQ, nod)
-	case PROBATION:
+	} else if nod.IsBelongsToProbation() {
 		c.reorderProbation(nod)
-	case PROTECTED:
+	} else {
 		c.reorder(c.protectedQ, nod)
 	}
 }
@@ -397,7 +386,7 @@ func (c *Cache) reorderProbation(nod *node.Node) { //从probation队列中移动
 	//修改pt的权重大小，但现在不考虑权重故不需要
 	c.probationQ.Remove(nod)
 	c.protectedQ.Push(nod)
-	nod.SetPosition(PROTECTED) //0；window，1：probation，2，protected
+	nod.InProtected()
 }
 
 
