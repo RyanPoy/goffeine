@@ -15,10 +15,14 @@ type AccessOrderQueue struct {
 }
 
 func New() *AccessOrderQueue {
+	return NewWith(0)
+}
+
+func NewWith(maxWeight int) *AccessOrderQueue {
 	return &AccessOrderQueue{
 		queue:     list.New(),
 		data:      sync.Map{},
-		MaxWeight: 0,
+		MaxWeight: maxWeight,
 	}
 }
 
