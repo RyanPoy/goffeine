@@ -55,7 +55,7 @@ func New(n int) *FrequencySketch {
 }
 
 func (s *FrequencySketch) Frequency(pNode *node.Node) int {
-	var x []byte = pNode.KeyHash()
+	var x []byte = pNode.KeyHash
 	frequency := math.MaxInt32
 	hashCode := uint64(s.spread(x))
 	start := int((hashCode & 3) << 2)
@@ -69,7 +69,7 @@ func (s *FrequencySketch) Frequency(pNode *node.Node) int {
 }
 
 func (s *FrequencySketch) Increment(pNode *node.Node) {
-	var x []byte = pNode.KeyHash()
+	var x []byte = pNode.KeyHash
 	hashCode := uint64(s.spread(x))
 	start := int((hashCode & 3) << 2)
 	added := 0

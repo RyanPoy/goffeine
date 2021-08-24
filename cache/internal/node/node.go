@@ -11,20 +11,20 @@ const (
 )
 
 type Node struct {
-	key      string
-	keyHash  []byte
-	value    interface{}
+	Key      string
+	KeyHash  []byte
+	Value    interface{}
 	position int //window：0，probation：1，protected：2
-	weight   int
+	Weight   int
 }
 
 func New(key string, value interface{}) *Node {
 	return &Node{
-		key:      key,
-		keyHash:  []byte(key),
-		value:    value,
+		Key:      key,
+		KeyHash:  []byte(key),
+		Value:    value,
 		position: WINDOW,
-		weight:   1,
+		Weight:   1,
 	}
 }
 
@@ -50,43 +50,19 @@ func (n *Node) IsBelongsToProtected() bool {
 	return n.position == PROTECTED
 }
 
-func (n *Node) Weight() int {
-	return n.weight
-}
-
-func (n *Node) SetWeight(a int) {
-	n.weight = a
-}
-
-func (n *Node) KeyHash() []byte {
-	return n.keyHash
-}
-
-func (n *Node) Value() interface{} {
-	return n.value
-}
-func (n *Node) Key() string {
-	return n.key
-
-}
 func (n *Node) Position() int {
 	return n.position
 }
 
-func (n *Node) Keyhash() []byte {
-	return n.keyHash
-}
 func (n *Node) Equals(n2 *Node) bool {
-	return n.key == n2.key && n.value == n2.value
-}
-func (n *Node) SetValue(value interface{}) {
-	n.value = value
+	return n.Key == n2.Key
 }
 
 func (n *Node) UpdateWith(n2 *Node) error {
-	if n.key != n2.key {
+	if !n.Equals(n2) {
 		return errors.New("The keys of two nodes are different")
 	}
-	n.value = n2.value
+	n.Value = n2.Value
+	n.Weight = n2.Weight
 	return nil
 }

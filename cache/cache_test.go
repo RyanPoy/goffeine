@@ -2,7 +2,6 @@ package cache
 
 import (
 	"github.com/stretchr/testify/assert"
-	"goffeine/cache/internal/node"
 	"strconv"
 	"testing"
 )
@@ -16,8 +15,8 @@ func TestInitial(t *testing.T) {
 	cache := newCache(10)
 	assert.Equal(10, cache.Capacity())
 	assert.Equal(0, cache.Weight())
-	assert.Equal(false, cache.Contains(node.New("abc", 1)))
 }
+
 func TestCache_PutANDGET_two(t *testing.T) {
 	assert := assert.New(t)
 	cache := newCache(2)

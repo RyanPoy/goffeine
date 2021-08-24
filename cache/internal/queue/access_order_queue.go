@@ -25,7 +25,7 @@ func New() *AccessOrderQueue {
 func (q *AccessOrderQueue) Weight() int {
 	w := 0
 	for e := q.queue.Front(); e != nil; e = e.Next() {
-		w += e.Value.(*node.Node).Weight()
+		w += e.Value.(*node.Node).Weight
 	}
 	return w
 }
@@ -35,12 +35,12 @@ func (q *AccessOrderQueue) IsEmpty() bool {
 }
 
 func (q *AccessOrderQueue) Contains(pNode *node.Node) bool {
-	_, ok := q.data.Load(pNode.Key())
+	_, ok := q.data.Load(pNode.Key)
 	return ok
 }
 
 func (q *AccessOrderQueue) GetQueueElementBy(pNode *node.Node) *list.Element {
-	r, _ := q.data.Load(pNode.Key())
+	r, _ := q.data.Load(pNode.Key)
 	return r.(*list.Element)
 }
 
@@ -54,7 +54,7 @@ func (q *AccessOrderQueue) Push(pNode *node.Node) {
 		q.queue.MoveToBack(pElement)
 	} else { // 不存在，空间也满了
 		pElement := q.queue.PushBack(pNode)
-		q.data.Store(pNode.Key(), pElement)
+		q.data.Store(pNode.Key, pElement)
 	}
 }
 
@@ -71,7 +71,7 @@ func (q *AccessOrderQueue) Remove(pNode *node.Node) {
 	//移除nod结点
 	if q.Contains(pNode) {
 		pElement := q.GetQueueElementBy(pNode)
-		q.data.Delete(pNode.Key())
+		q.data.Delete(pNode.Key)
 		q.queue.Remove(pElement)
 	}
 }
@@ -83,7 +83,7 @@ func (q *AccessOrderQueue) AddFirst(pNode *node.Node) {
 		q.queue.MoveToFront(pElement)
 	}
 	pElement := q.queue.PushFront(pNode)
-	q.data.Store(pNode.Key(), pElement)
+	q.data.Store(pNode.Key, pElement)
 }
 func (q *AccessOrderQueue) MoveToFront(pNode *node.Node) {
 	//将nod结点移到队首
