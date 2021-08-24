@@ -71,7 +71,7 @@ func (q *AccessOrderQueue) MoveToFirst(pNode *node.Node) {
 	}
 }
 
-func (q *AccessOrderQueue) MoveLinkLast(pNode *node.Node) {
+func (q *AccessOrderQueue) MoveToLast(pNode *node.Node) {
 	if q.Contains(pNode) { // 存在，则找到queue的位置，并且挪动到tail
 		pElement := q.GetQueueElementBy(pNode)
 		q.queue.MoveToBack(pElement)
