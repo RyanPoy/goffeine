@@ -231,7 +231,76 @@ func (c *Cache) evictFromWindow() int {
 	}
 	return candidates
 }
+
+func (c *Cache) getVictim() (*node.Node, error) {
+	nod, err := c.probationQ.First()
+	if err != nil {
+		nod, err = c.protectedQ.First()
+	}
+	if err != nil {
+		nod, err = c.windowQ.First()
+	}
+	return nod, err
+}
+
+func (c *Cache) getCandidate(fromWindow bool) (*node.Node, error){
+	if fromWindow {
+		return c.windowQ.First()
+	}
+	return c.probationQ.Last()
+}
+
+func (c *Cache) getQueueByNode(nod *node.Node) *queue.AccessOrderQueue {
+	if nod.IsBelongsToWindow() {
+		return c.windowQ
+	} else if nod.IsBelongsToProtected() {
+		return c.probationQ
+	}
+	return c.protectedQ
+}
 func (c *Cache) evictFromMain(candidates int) {
+	// 首先默认选择probation的队头和队尾作为victim和candidate，参与淘汰；
+	//若 FrequencyCandidate < 5，则淘汰c；
+	//若 5 <= FrequencyCandidate < FrequencyVictim:
+	// 随机淘汰 victim 或者  candidte
+	//若 FrequencyCandidate > FrequencyVictim 则淘汰v
+	for c.weight > c.cap {
+		victim, err1 := c.getVictim()
+		candidate, err2 := c.getCandidate(candidates <= 0)
+		if err1 != nil && err2 != nil {
+			return
+		}
+		if err1 == nil && err2 != nil { // victim有，candidate没有
+			c.evictEntry(victim)
+			continue
+		}
+		if err1 != nil && err2 == nil { // victim没有，candidate有
+			c.evictEntry(candidate)
+			candidates--
+			continue
+		}
+		// 执行到这里，则：err1 == nil && err2 == nil，表示 victim 和 candidate都有
+		if victim == candidate {
+			c.evictEntry(candidate)
+			candidates--
+			continue
+		}
+		if candidate.Weight() > c.cap {
+			c.evictEntry(candidate)
+			candidates--
+			continue
+		}
+
+		candidates--
+		if c.admit(candidate, victim) { // 淘汰victim
+			c.evictEntry(victim)
+		} else {
+			c.evictEntry(candidate)
+		}
+	}
+}
+
+func (c *Cache) evictFromMainOrigin(candidates int) {
 	victimQueue := node.PROBATION //probation 受害者由probation选出
 	victim , _ := c.probationQ.First()
 	candidate, _ := c.probationQ.Last()

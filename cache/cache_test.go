@@ -65,6 +65,7 @@ func TestCache_PutANDGET_bignum(t *testing.T) {
 	assert.Equal(false,cache.Get("102")==nil)//102存在
 	assert.Equal(100,cache.weight)//检测是否是最大值
 }
+
 func TestCache_PutANDGETwithWeight_bignum(t *testing.T) {
 	cache := newCache(1000)
 	assert :=assert.New(t)
