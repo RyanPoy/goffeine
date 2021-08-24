@@ -41,7 +41,7 @@ func readLines(fname string) ([]int, []int) {
 	reader := bufio.NewReader(f)
 	numbers, expecteds := make([]int, 0), make([]int, 0)
 
-	for ; ; {
+	for {
 		line, ferr := reader.ReadString('\n')
 		if ferr != nil && ferr == io.EOF {
 			break

@@ -68,8 +68,8 @@ func TestAccessOrderQueue_Remove(t *testing.T) {
 	pNode2 := node.New("id_456", 456)
 	q.Push(pNode2)
 	q.Remove(pNode1)
-	assert.Equal(false,q.Contains(pNode1))
-	assert.Equal(true,q.queue.Front().Value==pNode2)
+	assert.Equal(false, q.Contains(pNode1))
+	assert.Equal(true, q.queue.Front().Value == pNode2)
 }
 
 func TestAddWillBeEliminatedAutomaticWhenCapacityIsFull2(t *testing.T) {

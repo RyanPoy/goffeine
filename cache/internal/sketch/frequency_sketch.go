@@ -48,7 +48,7 @@ func New(n int) *FrequencySketch {
 	f := FrequencySketch{
 		table:     make([]uint64, length),
 		length:    length,
-		threshold: 10*length,
+		threshold: 10 * length,
 		counter:   0,
 	}
 	return &f
