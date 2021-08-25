@@ -7,6 +7,7 @@ import (
 	"goffeine/cache/internal/sketch"
 	"math/rand"
 	"sync"
+	"time"
 )
 
 /*
@@ -272,6 +273,11 @@ func (c *Cache) evictEntry(nod *node.Node) bool {
 func (c *Cache) makeDead(nod *node.Node) { //加锁完成，修改权重
 }
 
+func (c *Cache) rnd() bool {
+	rand.Seed(time.Now().Unix())
+	return rand.Int() & 127 == 0
+}
+
 func (c *Cache) admit(candidate *node.Node, victim *node.Node) bool { //window到probation晋升
 	victimFreq := c.sketch.Frequency(victim)
 	candidateFreq := c.sketch.Frequency(candidate)
@@ -284,8 +290,7 @@ func (c *Cache) admit(candidate *node.Node, victim *node.Node) bool { //window�
 		// 攻击利用热门候选人被拒绝而有利于热门受害者。 温暖候选者的阈值减少了随机接受的次数，以尽量减少对命中率的影响。
 		return false
 	}
-	random := rand.Int()
-	return (random & 127) == 0
+	return c.rnd()
 }
 
 func (c *Cache) removalTask(nod *node.Node) {
