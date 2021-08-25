@@ -307,7 +307,7 @@ func (c *Cache) onAccess(nod *node.Node) {
 	} else { // IsBelongsToProbation
 		if nod.Weight > c.protectedQ.MaxWeight {
 			//若大小超过protected大小，则放入pb的尾部
-			//c.probationQ.MoveToLast(nod) // @todo: java 版本的caffeine里面没有做处理
+			c.probationQ.MoveToLast(nod)
 		} else {
 			//修改pt的权重大小，但现在不考虑权重故不需要
 			c.probationQ.Remove(nod)
