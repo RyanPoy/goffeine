@@ -36,7 +36,7 @@ func TestCeilingPowerOfTwo64(t *testing.T) {
 func readLines(fname string) ([]int, []int) {
 	f, err := os.Open(fname) // 用Caffeine的Java版本生成10w数据
 	if err != nil {
-		defer f.Close()
+		//defer f.Close()
 	}
 	reader := bufio.NewReader(f)
 	numbers, expecteds := make([]int, 0), make([]int, 0)
