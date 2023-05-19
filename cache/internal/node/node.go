@@ -4,17 +4,19 @@ import (
 	"errors"
 )
 
+type Position int
+
 const (
-	WINDOW    int = 0
-	PROBATION int = 1
-	PROTECTED int = 2
+	WINDOW Position = iota
+	PROBATION
+	PROTECTED
 )
 
 type Node struct {
 	Key      string
 	KeyHash  []byte
 	Value    interface{}
-	position int //window：0，probation：1，protected：2
+	Location Position
 	Weight   int
 }
 
@@ -27,37 +29,37 @@ func NewWithWeight(key string, value interface{}, weight int) *Node {
 		Key:      key,
 		KeyHash:  []byte(key),
 		Value:    value,
-		position: WINDOW,
+		Location: WINDOW,
 		Weight:   weight,
 	}
 }
 
 func (n *Node) InWindow() {
-	n.position = WINDOW
+	n.Location = WINDOW
 }
 
 func (n *Node) InProbation() {
-	n.position = PROBATION
+	n.Location = PROBATION
 }
 
 func (n *Node) InProtected() {
-	n.position = PROTECTED
+	n.Location = PROTECTED
 }
 
-func (n *Node) IsBelongsToWindow() bool {
-	return n.position == WINDOW
+func (n *Node) IsInWindow() bool {
+	return n.Location == WINDOW
 }
 
-func (n *Node) IsBelongsToProbation() bool {
-	return n.position == PROBATION
+func (n *Node) IsInProbation() bool {
+	return n.Location == PROBATION
 }
 
-func (n *Node) IsBelongsToProtected() bool {
-	return n.position == PROTECTED
+func (n *Node) IsInProtected() bool {
+	return n.Location == PROTECTED
 }
 
-func (n *Node) Position() int {
-	return n.position
+func (n *Node) Position() Position {
+	return n.Location
 }
 
 func (n *Node) Equals(n2 *Node) bool {

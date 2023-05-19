@@ -133,13 +133,13 @@ func (c *Cache) maintenance() {
 
 func (c *Cache) updateTask(nod *node.Node) {
 	//执行更新元素位置工作
-	if nod.IsBelongsToWindow() {
+	if nod.IsInWindow() {
 		if c.wMaxWeight >= nod.Weight { //当前node值小于weight最大值，后期1改为node权重，代表node不超过window最大大小
 			c.onAccess(nod)
 		} else { //说明超过最大值，移到队首等待被清除
 			c.windowQ.MoveToFirst(nod)
 		}
-	} else if nod.IsBelongsToProbation() {
+	} else if nod.IsInProbation() {
 		if c.probationQ.MaxWeight >= nod.Weight { //后期1改为node权重，代表node不超过probation最大大小
 			c.onAccess(nod)
 		} else { //说明超过最大值，移除然后放入window队头等待驱逐比较
@@ -259,9 +259,9 @@ func (c *Cache) evictEntry(nod *node.Node) bool {
 	fmt.Println("=========执行evictEntry:", nod.Key)
 	c.hashmap.Delete(nod.Key)
 	c.Weight -= nod.Weight
-	if nod.IsBelongsToWindow() {
+	if nod.IsInWindow() {
 		c.windowQ.Remove(nod)
-	} else if nod.IsBelongsToProbation() {
+	} else if nod.IsInProbation() {
 		c.probationQ.Remove(nod)
 	} else {
 		c.protectedQ.Remove(nod)
@@ -275,7 +275,7 @@ func (c *Cache) makeDead(nod *node.Node) { //加锁完成，修改权重
 
 func (c *Cache) rnd() bool {
 	rand.Seed(time.Now().Unix())
-	return rand.Int() & 127 == 0
+	return rand.Int()&127 == 0
 }
 
 func (c *Cache) admit(candidate *node.Node, victim *node.Node) bool { //window到probation晋升
@@ -300,11 +300,11 @@ func (c *Cache) removalTask(nod *node.Node) {
 func (c *Cache) onAccess(nod *node.Node) {
 	//更新结点位置
 	c.sketch.Increment(nod) //增加访问频率
-	if nod.IsBelongsToWindow() {
+	if nod.IsInWindow() {
 		c.windowQ.MoveToLast(nod)
-	} else if nod.IsBelongsToProtected() {
+	} else if nod.IsInProtected() {
 		c.protectedQ.MoveToLast(nod)
-	} else { // IsBelongsToProbation
+	} else { // IsInProbation
 		if nod.Weight > c.protectedQ.MaxWeight {
 			//若大小超过protected大小，则放入pb的尾部
 			c.probationQ.MoveToLast(nod)
