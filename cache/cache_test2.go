@@ -2,7 +2,7 @@ package cache
 
 import (
 	"github.com/stretchr/testify/assert"
-	"goffeine/cache/internal/node"
+	"goffeine/internal/node"
 	"testing"
 )
 
@@ -99,7 +99,7 @@ func TestEvictFromProbation(t *testing.T) {
 	cache.putToWindowQueue(node.NewWithWeight("key_3", 3, 10)) //
 	cache.putToWindowQueue(node.NewWithWeight("key_4", 4, 15)) //
 
-	cache.evictFromWindow() // 这里应该依次淘汰key_2，key_1, key_3 到 probation
+	cache.evictFromWindow()    // 这里应该依次淘汰key_2，key_1, key_3 到 probation
 	cache.evictFromProbation() // 这里应该淘汰key_3, key_1
 	pNode, ok := cache.probationQ.UnlinkFirst()
 	assert.Equal("key_2", pNode.Key)
@@ -116,7 +116,7 @@ func TestEvictFromProbationShouldDoNothingWhenWindowQueueWeightLessThanMaxWeight
 	cache.putToWindowQueue(node.NewWithWeight("key_3", 3, 10)) //
 	cache.putToWindowQueue(node.NewWithWeight("key_4", 4, 15)) //
 
-	cache.evictFromWindow() // 这里应该依次淘汰key_2，key_1, key_3 到 probation
+	cache.evictFromWindow()    // 这里应该依次淘汰key_2，key_1, key_3 到 probation
 	cache.evictFromProbation() // 这里不会淘汰任何node
 	assert.Equal(50, cache.probationQ.Weight())
 }
