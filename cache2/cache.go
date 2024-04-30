@@ -1,4 +1,4 @@
-package cache
+package cache2
 
 import (
 	"goffeine/internal/node"

@@ -1,8 +1,8 @@
 package sketch
 
 import (
-	"goffeine/cache/internal/node"
-	"goffeine/cache/internal/utils"
+	"goffeine/cache2/internal/node"
+	"goffeine/cache2/internal/utils"
 	"math"
 	"math/bits"
 )

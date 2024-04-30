@@ -2,7 +2,7 @@ package queue
 
 import (
 	"github.com/stretchr/testify/assert"
-	"goffeine/cache/internal/node"
+	"goffeine/cache2/internal/node"
 	"testing"
 )
 

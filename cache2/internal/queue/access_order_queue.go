@@ -2,7 +2,7 @@ package queue
 
 import (
 	"container/list"
-	"goffeine/cache/internal/node"
+	"goffeine/cache2/internal/node"
 	"sync"
 )
 

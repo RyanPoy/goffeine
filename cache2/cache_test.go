@@ -1,12 +1,18 @@
-package cache
+package cache2
 
 import (
 	"github.com/stretchr/testify/assert"
 	"strconv"
+	"sync/atomic"
 	"testing"
 )
 
 func newCache(n int) Cache {
+	var i int64 = 32
+	atomic.AddInt64(&i, 1)
+
+	var v uint64 = 32
+	atomic.AddUintptr(&v, 1)
 	return New(n)
 }
 
@@ -115,23 +121,23 @@ func TestGetWhenHitInProtected(t *testing.T) {
 }
 
 //func TestCache_PutANDGETwithWeight_nullcheck(t *testing.T) {
-//	cache := NewWith(60, 20 , 25)
+//	cache2 := NewWith(60, 20 , 25)
 //	assert :=assert.New(t)
-//	cache.PutWithWeight("1",1,10)
-//	cache.PutWithWeight("2",2,10)
-//	cache.PutWithWeight("3",3,10)
-//	cache.PutWithWeight("4",4,10)
+//	cache2.PutWithWeight("1",1,10)
+//	cache2.PutWithWeight("2",2,10)
+//	cache2.PutWithWeight("3",3,10)
+//	cache2.PutWithWeight("4",4,10)
 //	//1,2 probation; 3,4 window;
-//	assert.Equal(20, cache.probationQ.Weight())
+//	assert.Equal(20, cache2.probationQ.Weight())
 //
-//	cache.GetWithWeight("1")
-//	cache.GetWithWeight("2")
-//	assert.Equal(0, cache.probationQ.Weight())
-//	assert.Equal(20, cache.protectedQ.Weight())
+//	cache2.GetWithWeight("1")
+//	cache2.GetWithWeight("2")
+//	assert.Equal(0, cache2.probationQ.Weight())
+//	assert.Equal(20, cache2.protectedQ.Weight())
 //
 //	//1,2 protected; 3,4 window;
-//	cache.PutWithWeight("1",10,25)
-//	assert.Equal(true,cache.Get("2")==nil)
+//	cache2.PutWithWeight("1",10,25)
+//	assert.Equal(true,cache2.Get("2")==nil)
 //}
 
 func TestCache_PutANDGETwithWeight_bignum(t *testing.T) {
@@ -142,8 +148,8 @@ func TestCache_PutANDGETwithWeight_bignum(t *testing.T) {
 	cache.PutWithWeight("2", 1, 300) //测验当前权重是正确
 	assert.Equal(305, cache.Weight)
 	cache.PutWithWeight("3", 3, 600) //
-	//cache.PutWithWeight("4",4,800)//检验多驱逐是否成功
-	//assert.Equal(80,cache.Weight)//此处不是bug是程序逻辑，是由于window太小导致的，需要动态调整窗口大小去优化
+	//cache2.PutWithWeight("4",4,800)//检验多驱逐是否成功
+	//assert.Equal(80,cache2.Weight)//此处不是bug是程序逻辑，是由于window太小导致的，需要动态调整窗口大小去优化
 	cache.PutWithWeight("5", 3, 100) //当已经满时，大于window大小的weight一律放不进。
-	//	assert.Equal(80,cache.Weight)
+	//	assert.Equal(80,cache2.Weight)
 }

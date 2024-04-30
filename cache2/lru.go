@@ -1,4 +1,4 @@
-package cache
+package cache2
 
 type LRU struct{}
 
