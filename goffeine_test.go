@@ -12,8 +12,15 @@ type CacheItem struct {
 	Bar string
 }
 
+func NewCache() *goffeine.Goffeine {
+	return goffeine.NewBuilder().MaximumSize(10_1000).ExpireAfterWrite(time.Minute, 5).RefreshAfterWrite(time.Hour, 1).Build()
+}
+func NewCacheWithMaximumSize(maxSize int) *goffeine.Goffeine {
+	return goffeine.NewBuilder().MaximumSize(maxSize).ExpireAfterWrite(time.Minute, 5).RefreshAfterWrite(time.Hour, 1).Build()
+}
+
 func TestBuilder(t *testing.T) {
-	cache := goffeine.NewBuilder().MaximumSize(10_1000).ExpireAfterWrite(time.Minute, 5).RefreshAfterWrite(time.Hour, 1).Build()
+	cache := NewCache()
 	assert.Equal(t, 10_1000, cache.MaximumSize())
 
 	assert.Equal(t, 5, cache.ExpireTime().Delay)
@@ -23,8 +30,17 @@ func TestBuilder(t *testing.T) {
 	assert.Equal(t, time.Hour, cache.RefreshTime().Duration)
 }
 
-func NewCache() *goffeine.Goffeine {
-	return goffeine.NewBuilder().MaximumSize(10_1000).ExpireAfterWrite(time.Minute, 5).RefreshAfterWrite(time.Hour, 1).Build()
+func TestGoffeineSize(t *testing.T) {
+	cache := NewCacheWithMaximumSize(100)
+	assert.Equal(t, 100, cache.MaximumSize())
+	assert.Equal(t, 1, cache.WindowMaximumSize())
+	assert.Equal(t, 20, cache.ProbationMaximumSize())
+	assert.Equal(t, 80, cache.ProtectedMaximumSize())
+
+	cache = NewCacheWithMaximumSize(0)
+	assert.Equal(t, 1, cache.WindowMaximumSize())
+	assert.Equal(t, 1, cache.ProbationMaximumSize())
+	assert.Equal(t, 1, cache.ProtectedMaximumSize())
 }
 
 func TestSetAndGet(t *testing.T) {
