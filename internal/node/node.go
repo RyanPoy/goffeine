@@ -1,9 +1,9 @@
 package node
 
-type NodePosition int
+type Position int
 
 const (
-	WindowPosition NodePosition = iota
+	WindowPosition Position = iota
 	ProbationPosition
 	ProtectedPosition
 )
@@ -11,9 +11,9 @@ const (
 type GoffeineNode struct {
 	Key      string
 	Value    any
-	Position NodePosition
+	Position Position
 }
 
-func New(key string, value any, position NodePosition) *GoffeineNode {
+func New(key string, value any, position Position) *GoffeineNode {
 	return &GoffeineNode{Key: key, Value: value, Position: position}
 }
