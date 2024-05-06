@@ -106,36 +106,45 @@ func (g *Goffeine) Get(key string) (any, bool) {
 	return gnode.Value, true
 }
 
-func (g *Goffeine) Set(key string, value any) {
-	g.set(key, value, g.expireTime)
+func (g *Goffeine) Put(key string, value any) {
+	g.put(key, value, g.expireTime)
 }
 
-func (g *Goffeine) SetWithDelay(key string, value any, delay int) {
-	g.set(key, value, TimeUnion{Delay: delay, Duration: g.expireTime.Duration})
+func (g *Goffeine) PutWithDelay(key string, value any, delay int) {
+	g.put(key, value, TimeUnion{Delay: delay, Duration: g.expireTime.Duration})
 }
 
-func (g *Goffeine) SetWithDelayAndDuration(key string, value any, delay int, duration time.Duration) {
-	g.set(key, value, TimeUnion{Delay: delay, Duration: duration})
+func (g *Goffeine) PutWithDelayAndDuration(key string, value any, delay int, duration time.Duration) {
+	g.put(key, value, TimeUnion{Delay: delay, Duration: duration})
 }
 
-func (g *Goffeine) set(key string, value any, expireTime TimeUnion) {
-	gnode := &node.GoffeineNode{Key: key, Value: value}
+func (g *Goffeine) put(key string, value any, expireTime TimeUnion) {
+	gnode := node.New(key, value, node.WindowPosition)
 	v, ok := g.data.Load(key)
 	if ok {
 		oldEle := v.(*list.Element)
+		gnode.Position = oldEle.Value.(*node.GoffeineNode).Position
 		oldEle.Value = gnode
-		g.window.MoveToFront(oldEle)
+
+		if gnode.Position == node.WindowPosition {
+			g.window.MoveToFront(oldEle)
+		} else if gnode.Position == node.ProbationPosition {
+			// todo
+		} else if gnode.Position == node.ProtectedPosition {
+			// todo
+		}
 		return
 	}
-	var ele *list.Element
 
+	// not exist
+	var ele *list.Element
 	if g.windowIsFull() {
 		// remove the key data
 		ele = g.window.Back()
 		oldKey := ele.Value.(*node.GoffeineNode).Key
 		g.data.Delete(oldKey)
 
-		// set value to back element and move it to front
+		// put value to back element and move it to front
 		ele.Value = gnode
 		g.window.MoveToFront(ele)
 	} else {

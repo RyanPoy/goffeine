@@ -43,10 +43,10 @@ func TestGoffeineSize(t *testing.T) {
 	assert.Equal(t, 1, cache.ProtectedMaximumSize())
 }
 
-func TestBasicSetAndGet(t *testing.T) {
+func TestBasicPutAndGet(t *testing.T) {
 	cache := NewCache()
-	cache.Set("a", 1)
-	cache.Set("b", CacheItem{2, "b"})
+	cache.Put("a", 1)
+	cache.Put("b", CacheItem{2, "b"})
 
 	v, _ := cache.Get("a")
 	assert.Equal(t, 1, v)
@@ -59,15 +59,15 @@ func TestBasicSetAndGet(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestSetToAFullWindowAndGet(t *testing.T) {
+func TestPutToAFullWindowAndGet(t *testing.T) {
 	// window maximum size is 3,
-	// so we must set 3/0.01 maximum size to cache
+	// so we must put 3/0.01 maximum size to cache
 	// 3 / 0.01 = 300
 	cache := NewCacheWithMaximumSize(300)
-	cache.Set("a", 1)
-	cache.Set("b", 2)
-	cache.Set("c", 3)
-	cache.Set("d", CacheItem{4, "d"})
+	cache.Put("a", 1)
+	cache.Put("b", 2)
+	cache.Put("c", 3)
+	cache.Put("d", CacheItem{4, "d"})
 
 	v, ok := cache.Get("a")
 	assert.False(t, ok)
