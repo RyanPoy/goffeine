@@ -22,12 +22,8 @@ func NewCacheWithMaximumSize(maxSize int) *goffeine.Goffeine {
 func TestBuilder(t *testing.T) {
 	cache := NewCache()
 	assert.Equal(t, 10_1000, cache.MaximumSize())
-
-	assert.Equal(t, 5, cache.ExpireTime().Delay)
-	assert.Equal(t, time.Minute, cache.ExpireTime().Duration)
-
-	assert.Equal(t, 1, cache.RefreshTime().Delay)
-	assert.Equal(t, time.Hour, cache.RefreshTime().Duration)
+	assert.Equal(t, (5 * time.Minute).Milliseconds(), cache.ExpireMilliseconds())
+	assert.Equal(t, (1 * time.Hour).Milliseconds(), cache.RefreshMilliseconds())
 }
 
 func TestGoffeineSize(t *testing.T) {

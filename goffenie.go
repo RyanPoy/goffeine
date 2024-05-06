@@ -4,70 +4,10 @@ import (
 	"container/list"
 	"goffeine/internal/node"
 	"sync"
-	"time"
 )
-
-type TimeUnion struct {
-	Duration time.Duration
-	Delay    int
-}
 
 func NewBuilder() *GoffeineBuilder {
 	return &GoffeineBuilder{}
-}
-
-// A GoffeineBuilder is used to create a Goffeine instance
-// e.g.	goffeine.NewBuilder().maximumSize(10).ExpireAfterWrite(time.Second, 5).Build()
-type GoffeineBuilder struct {
-	maximumSize      int
-	expireTimeUnion  TimeUnion
-	refreshTimeUnion TimeUnion
-}
-
-func (b *GoffeineBuilder) MaximumSize(size int) *GoffeineBuilder {
-	if size < 1 {
-		size = 3 // window: 1, probation: 1, protected: 1
-	}
-	b.maximumSize = size
-	return b
-}
-
-func (b *GoffeineBuilder) ExpireAfterWrite(duration time.Duration, delay int) *GoffeineBuilder {
-	b.expireTimeUnion = TimeUnion{Duration: duration, Delay: delay}
-	return b
-}
-
-func (b *GoffeineBuilder) RefreshAfterWrite(duration time.Duration, delay int) *GoffeineBuilder {
-	b.refreshTimeUnion = TimeUnion{Duration: duration, Delay: delay}
-	return b
-}
-
-func (b *GoffeineBuilder) Build() *Goffeine {
-	windowMaxsize := b.maximumSize / 100
-	if windowMaxsize < 1 {
-		windowMaxsize = 1
-	}
-
-	probationMaxsize := (b.maximumSize - windowMaxsize) * 20 / 100
-	if probationMaxsize < 1 {
-		probationMaxsize = 1
-	}
-
-	protectedMaxsize := b.maximumSize - windowMaxsize - probationMaxsize
-	if protectedMaxsize < 1 {
-		protectedMaxsize = 1
-	}
-
-	return &Goffeine{
-		maximumSize:          b.maximumSize,
-		windowMaximumSize:    windowMaxsize,
-		probationMaximumSize: probationMaxsize,
-		protectedMaximumSize: protectedMaxsize,
-
-		expireTime:  b.expireTimeUnion,
-		refreshTime: b.refreshTimeUnion,
-		data:        &sync.Map{},
-	}
 }
 
 // A Goffeine represents a cache
@@ -82,16 +22,16 @@ type Goffeine struct {
 	protected            list.List
 	protectedMaximumSize int
 	counter              map[string]int
-	expireTime           TimeUnion
-	refreshTime          TimeUnion
+	expireMilliseconds   int64
+	refreshMilliseconds  int64
 }
 
-func (g *Goffeine) MaximumSize() int          { return g.maximumSize }
-func (g *Goffeine) ExpireTime() TimeUnion     { return g.expireTime }
-func (g *Goffeine) RefreshTime() TimeUnion    { return g.refreshTime }
-func (g *Goffeine) WindowMaximumSize() int    { return g.windowMaximumSize }
-func (g *Goffeine) ProbationMaximumSize() int { return g.probationMaximumSize }
-func (g *Goffeine) ProtectedMaximumSize() int { return g.protectedMaximumSize }
+func (g *Goffeine) MaximumSize() int           { return g.maximumSize }
+func (g *Goffeine) ExpireMilliseconds() int64  { return g.expireMilliseconds }
+func (g *Goffeine) RefreshMilliseconds() int64 { return g.refreshMilliseconds }
+func (g *Goffeine) WindowMaximumSize() int     { return g.windowMaximumSize }
+func (g *Goffeine) ProbationMaximumSize() int  { return g.probationMaximumSize }
+func (g *Goffeine) ProtectedMaximumSize() int  { return g.protectedMaximumSize }
 
 func (g *Goffeine) windowIsFull() bool    { return g.window.Len() == g.windowMaximumSize }
 func (g *Goffeine) probationIsFull() bool { return g.probation.Len() == g.probationMaximumSize }
@@ -103,22 +43,21 @@ func (g *Goffeine) Get(key string) (any, bool) {
 		return nil, false
 	}
 	gnode := ele.(*list.Element).Value.(*node.GoffeineNode)
+	defer func() {
+		go g.move(gnode)
+	}()
 	return gnode.Value, true
 }
 
 func (g *Goffeine) Put(key string, value any) {
-	g.put(key, value, g.expireTime)
+	g.PutWithDelay(key, value, g.expireMilliseconds)
 }
 
-func (g *Goffeine) PutWithDelay(key string, value any, delay int) {
-	g.put(key, value, TimeUnion{Delay: delay, Duration: g.expireTime.Duration})
+func (g *Goffeine) PutWithDelay(key string, value any, delayMilliseconds int64) {
+	g.put(key, value, delayMilliseconds)
 }
 
-func (g *Goffeine) PutWithDelayAndDuration(key string, value any, delay int, duration time.Duration) {
-	g.put(key, value, TimeUnion{Delay: delay, Duration: duration})
-}
-
-func (g *Goffeine) put(key string, value any, expireTime TimeUnion) {
+func (g *Goffeine) put(key string, value any, expireMilliseconds int64) {
 	gnode := node.New(key, value, node.WindowPosition)
 	v, ok := g.data.Load(key)
 	if ok {
@@ -136,6 +75,11 @@ func (g *Goffeine) put(key string, value any, expireTime TimeUnion) {
 		return
 	}
 
+	g.putToWindow(key, gnode)
+	return
+}
+
+func (g *Goffeine) putToWindow(key string, gnode *node.GoffeineNode) {
 	// not exist
 	var ele *list.Element
 	if g.windowIsFull() {
@@ -167,6 +111,18 @@ func (g *Goffeine) put(key string, value any, expireTime TimeUnion) {
 	//return ele
 	//ele := v.(*list.Element)
 	//ele.Value = value
+}
+
+func (g *Goffeine) move(gnode *node.GoffeineNode) {
+	if gnode.Position == node.WindowPosition {
+		// todo move to probation
+		return
+	}
+	if gnode.Position == node.ProbationPosition {
+		// todo move to protected
+		return
+	}
+	return
 }
 
 //
