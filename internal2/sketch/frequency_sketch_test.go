@@ -3,7 +3,7 @@ package sketch
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"goffeine/internal/node"
+	"goffeine/internal2/node"
 	"testing"
 )
 
