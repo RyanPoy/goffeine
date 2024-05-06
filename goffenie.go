@@ -6,10 +6,6 @@ import (
 	"sync"
 )
 
-func NewBuilder() *GoffeineBuilder {
-	return &GoffeineBuilder{}
-}
-
 // A Goffeine represents a cache
 // It is implemented with Window-TinyLFU algorithm
 type Goffeine struct {

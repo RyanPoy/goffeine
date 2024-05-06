@@ -5,15 +5,19 @@ import (
 	"time"
 )
 
-// A GoffeineBuilder is used to create a Goffeine instance
+func NewBuilder() *Builder {
+	return &Builder{}
+}
+
+// A Builder is used to create a Goffeine instance
 // e.g.	goffeine.NewBuilder().maximumSize(10).ExpireAfterWrite(time.Second, 5).Build()
-type GoffeineBuilder struct {
+type Builder struct {
 	maximumSize         int
 	expireMilliseconds  int64
 	refreshMilliseconds int64
 }
 
-func (b *GoffeineBuilder) MaximumSize(size int) *GoffeineBuilder {
+func (b *Builder) MaximumSize(size int) *Builder {
 	if size < 1 {
 		size = 3 // window: 1, probation: 1, protected: 1
 	}
@@ -21,17 +25,17 @@ func (b *GoffeineBuilder) MaximumSize(size int) *GoffeineBuilder {
 	return b
 }
 
-func (b *GoffeineBuilder) ExpireAfterWrite(duration time.Duration, delay int) *GoffeineBuilder {
+func (b *Builder) ExpireAfterWrite(duration time.Duration, delay int) *Builder {
 	b.expireMilliseconds = duration.Milliseconds() * int64(delay)
 	return b
 }
 
-func (b *GoffeineBuilder) RefreshAfterWrite(duration time.Duration, delay int) *GoffeineBuilder {
+func (b *Builder) RefreshAfterWrite(duration time.Duration, delay int) *Builder {
 	b.refreshMilliseconds = duration.Milliseconds() * int64(delay)
 	return b
 }
 
-func (b *GoffeineBuilder) Build() *Goffeine {
+func (b *Builder) Build() *Goffeine {
 	windowMaxsize := b.maximumSize / 100
 	if windowMaxsize < 1 {
 		windowMaxsize = 1
