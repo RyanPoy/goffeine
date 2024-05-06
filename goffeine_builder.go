@@ -9,10 +9,8 @@ import (
 // e.g.	goffeine.NewBuilder().maximumSize(10).ExpireAfterWrite(time.Second, 5).Build()
 type GoffeineBuilder struct {
 	maximumSize         int
-	expireTimeDuration  time.Duration
-	expireTimeDelay     int
-	refreshTimeDuration time.Duration
-	refreshTimeDelay    int
+	expireMilliseconds  int64
+	refreshMilliseconds int64
 }
 
 func (b *GoffeineBuilder) MaximumSize(size int) *GoffeineBuilder {
@@ -24,14 +22,12 @@ func (b *GoffeineBuilder) MaximumSize(size int) *GoffeineBuilder {
 }
 
 func (b *GoffeineBuilder) ExpireAfterWrite(duration time.Duration, delay int) *GoffeineBuilder {
-	b.expireTimeDuration = duration
-	b.expireTimeDelay = delay
+	b.expireMilliseconds = duration.Milliseconds() * int64(delay)
 	return b
 }
 
 func (b *GoffeineBuilder) RefreshAfterWrite(duration time.Duration, delay int) *GoffeineBuilder {
-	b.refreshTimeDuration = duration
-	b.refreshTimeDelay = delay
+	b.refreshMilliseconds = duration.Milliseconds() * int64(delay)
 	return b
 }
 
@@ -57,8 +53,8 @@ func (b *GoffeineBuilder) Build() *Goffeine {
 		probationMaximumSize: probationMaxsize,
 		protectedMaximumSize: protectedMaxsize,
 
-		expireMilliseconds:  b.expireTimeDuration.Milliseconds() * int64(b.expireTimeDelay),
-		refreshMilliseconds: b.refreshTimeDuration.Milliseconds() * int64(b.refreshTimeDelay),
+		expireMilliseconds:  b.expireMilliseconds,
+		refreshMilliseconds: b.refreshMilliseconds,
 		data:                &sync.Map{},
 	}
 }
