@@ -9,6 +9,7 @@ import (
 // A Goffeine represents a cache
 // It is implemented with Window-TinyLFU algorithm
 type Goffeine struct {
+	fsketch              *FrequencySketch
 	data                 *sync.Map
 	maximumSize          int
 	window               list.List
@@ -17,7 +18,6 @@ type Goffeine struct {
 	probationMaximumSize int
 	protected            list.List
 	protectedMaximumSize int
-	counter              map[string]int
 	expireMilliseconds   int64
 	refreshMilliseconds  int64
 }
@@ -46,7 +46,7 @@ func (g *Goffeine) Get(key string) (any, bool) {
 }
 
 func (g *Goffeine) Put(key string, value any) {
-	g.PutWithDelay(key, value, g.expireMilliseconds)
+	g.put(key, value, g.expireMilliseconds)
 }
 
 func (g *Goffeine) PutWithDelay(key string, value any, delayMilliseconds int64) {

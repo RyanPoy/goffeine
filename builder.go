@@ -1,6 +1,7 @@
 package goffeine
 
 import (
+	"container/list"
 	"sync"
 	"time"
 )
@@ -54,11 +55,14 @@ func (b *Builder) Build() *Goffeine {
 	return &Goffeine{
 		maximumSize:          b.maximumSize,
 		windowMaximumSize:    windowMaxsize,
+		window:               list.List{},
 		probationMaximumSize: probationMaxsize,
+		probation:            list.List{},
 		protectedMaximumSize: protectedMaxsize,
-
-		expireMilliseconds:  b.expireMilliseconds,
-		refreshMilliseconds: b.refreshMilliseconds,
-		data:                &sync.Map{},
+		protected:            list.List{},
+		expireMilliseconds:   b.expireMilliseconds,
+		refreshMilliseconds:  b.refreshMilliseconds,
+		data:                 &sync.Map{},
+		fsketch:              NewSketch(b.maximumSize),
 	}
 }

@@ -56,8 +56,8 @@ func TestBasicPutAndGet(t *testing.T) {
 }
 
 func TestPutToAFullWindowAndGet(t *testing.T) {
-	// window maximum size is 3,
-	// so we must put 3/0.01 maximum size to cache
+	// window maximum Size is 3,
+	// so we must put 3/0.01 maximum Size to cache
 	// 3 / 0.01 = 300
 	cache := NewCacheWithMaximumSize(300)
 	cache.Put("a", 1)
